@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project IQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0A0E14;--bg2:#111720;--bg3:#161D2A;--bg4:#1C2438;
+  --b1:rgba(255,255,255,0.07);--b2:rgba(255,255,255,0.12);
+  --tx:#E8EFF8;--mu:#6B7A96;--mu2:#3D4B63;
+  --teal:#3FB950;--teal2:#238636;
+  --blue:#58A6FF;--bbg:rgba(88,166,255,0.08);
+  --red:#F85149;
+  --ff:'Geist',system-ui,sans-serif;--fm:'Geist Mono',monospace;
+}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+
+/* Logo */
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.logo-mark{width:48px;height:48px;background:linear-gradient(135deg,var(--teal2),#2ea043);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white;font-family:var(--fm);box-shadow:0 0 24px rgba(63,185,80,0.3);}
+.logo-text{}
+.logo-name{font-size:20px;font-weight:700;letter-spacing:-0.3px;}
+.logo-sub{font-size:13px;color:var(--mu);}
+
+/* Card */
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:16px;width:100%;max-width:420px;overflow:hidden;}
+
+/* Tabs */
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--bg3);border-bottom:1px solid var(--b1);}
+.tab{padding:14px;text-align:center;font-size:14px;font-weight:500;color:var(--mu);cursor:pointer;transition:all 0.15s;border:none;background:none;font-family:var(--ff);}
+.tab.active{background:var(--bg2);color:var(--tx);font-weight:600;}
+
+/* Forms */
+.form-body{padding:24px;display:flex;flex-direction:column;gap:14px;}
+.form-pane{display:none;}
+.form-pane.active{display:flex;flex-direction:column;gap:14px;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.flb{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--mu);}
+.fi{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:11px 14px;font-size:14px;color:var(--tx);outline:none;font-family:var(--ff);width:100%;transition:border-color 0.15s;}
+.fi:focus{border-color:rgba(63,185,80,0.4);}
+.fi::placeholder{color:var(--mu2);}
+.btn-submit{width:100%;padding:13px;background:var(--teal2);color:white;border:1px solid rgba(63,185,80,0.3);border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all 0.15s;}
+.btn-submit:hover{background:#2ea043;box-shadow:0 0 20px rgba(63,185,80,0.2);}
+.err{background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.2);border-radius:7px;padding:9px 12px;font-size:12px;color:var(--red);display:none;}
+
+/* Divider */
+.divider{display:flex;align-items:center;gap:10px;color:var(--mu2);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--b1);}
+
+/* Demo buttons */
+.demo-btn{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--b1);background:var(--bg3);cursor:pointer;transition:all 0.2s;text-decoration:none;color:var(--tx);}
+.demo-btn:hover{border-color:var(--b2);background:var(--bg4);transform:translateY(-1px);}
+.demo-btn.builder{border-color:rgba(88,166,255,0.2);}
+.demo-btn.builder:hover{border-color:rgba(88,166,255,0.4);}
+.demo-btn.subco{border-color:rgba(63,185,80,0.2);}
+.demo-btn.subco:hover{border-color:rgba(63,185,80,0.4);}
+.demo-icon{font-size:26px;flex-shrink:0;}
+.demo-info{flex:1;}
+.demo-title{font-size:14px;font-weight:600;margin-bottom:2px;}
+.demo-title.b{color:var(--blue);}
+.demo-title.g{color:var(--teal);}
+.demo-creds{font-size:11px;color:var(--mu);}
+.demo-arrow{font-size:16px;color:var(--mu);transition:transform 0.15s;}
+.demo-btn:hover .demo-arrow{transform:translateX(3px);}
+
+.demo-note{font-size:11px;color:var(--mu2);text-align:center;padding:0 24px 20px;line-height:1.5;}
+
+/* Portal select (create account step 1) */
+.portal-select{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.portal-opt{border:1px solid var(--b1);border-radius:10px;padding:16px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.portal-opt:hover{border-color:var(--b2);}
+.portal-opt.selected{border-color:rgba(63,185,80,0.4);background:rgba(63,185,80,0.04);}
+.portal-opt-icon{font-size:28px;margin-bottom:8px;}
+.portal-opt-name{font-size:13px;font-weight:600;margin-bottom:4px;}
+.portal-opt-desc{font-size:11px;color:var(--mu);line-height:1.4;}
+
+.steps{font-size:11px;color:var(--mu);text-align:center;margin-bottom:4px;}
+.btn-back{background:none;border:none;color:var(--mu);font-size:13px;cursor:pointer;font-family:var(--ff);padding:0;}
+.btn-back:hover{color:var(--tx);}
+.form-row-btns{display:flex;align-items:center;justify-content:space-between;}
+</style>
+</head>
+<body>
+
+<div class="logo">
+  <div class="logo-mark">IQ</div>
+  <div class="logo-text">
+    <div class="logo-name">Project IQ</div>
+    <div class="logo-sub">Construction financial management</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('signin')">Sign in</button>
+    <button class="tab" onclick="switchTab('create')">Create account</button>
+  </div>
+
+  <div class="form-body">
+
+    <!-- SIGN IN -->
+    <div class="form-pane active" id="pane-signin">
+      <div class="fg">
+        <label class="flb">Email</label>
+        <input class="fi" id="si-email" type="email" placeholder="you@company.com.au">
+      </div>
+      <div class="fg">
+        <label class="flb">Password</label>
+        <input class="fi" id="si-pass" type="password" placeholder="••••••••">
+      </div>
+      <div class="err" id="si-err">Invalid email or password.</div>
+      <button class="btn-submit" onclick="doSignIn()">Sign in →</button>
+
+      <div class="divider">Try a demo account</div>
+
+      <a href="builder-demo.html" class="demo-btn builder">
+        <div class="demo-icon">🏗</div>
+        <div class="demo-info">
+          <div class="demo-title b">Builder portal demo</div>
+          <div class="demo-creds">Full builder experience — no login needed</div>
+        </div>
+        <div class="demo-arrow">→</div>
+      </a>
+
+      <a href="subcontractor-demo.html" class="demo-btn subco">
+        <div class="demo-icon">🔧</div>
+        <div class="demo-info">
+          <div class="demo-title g">Subcontractor portal demo</div>
+          <div class="demo-creds">Full subcontractor experience — no login needed</div>
+        </div>
+        <div class="demo-arrow">→</div>
+      </a>
+    </div>
+
+    <!-- CREATE ACCOUNT — Step 1: Portal select -->
+    <div class="form-pane" id="pane-create-1">
+      <div class="steps">Step 1 of 2</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px;">What best describes you?</div>
+      <div style="font-size:12px;color:var(--mu);margin-bottom:8px;">This sets up your portal. You can always change this later.</div>
+      <div class="portal-select">
+        <div class="portal-opt" id="opt-builder" onclick="selectPortal('builder')">
+          <div class="portal-opt-icon">🏗</div>
+          <div class="portal-opt-name">Builder</div>
+          <div class="portal-opt-desc">Manage subcontractor claims, SOP compliance, retention and cashflow</div>
+        </div>
+        <div class="portal-opt" id="opt-subco" onclick="selectPortal('subcontractor')">
+          <div class="portal-opt-icon">🔧</div>
+          <div class="portal-opt-name">Subcontractor</div>
+          <div class="portal-opt-desc">Submit payment claims, track SOP deadlines and monitor your retention</div>
+        </div>
+      </div>
+      <div class="err" id="ca1-err">Please select a portal type.</div>
+      <button class="btn-submit" onclick="goStep2()">Continue →</button>
+    </div>
+
+    <!-- CREATE ACCOUNT — Step 2: Company details -->
+    <div class="form-pane" id="pane-create-2">
+      <div class="steps">Step 2 of 2</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">Set up your company</div>
+      <div class="fg">
+        <label class="flb">First name</label>
+        <input class="fi" id="ca-first" placeholder="James">
+      </div>
+      <div class="fg">
+        <label class="flb">Last name</label>
+        <input class="fi" id="ca-last" placeholder="Mitchell">
+      </div>
+      <div class="fg">
+        <label class="flb">Email</label>
+        <input class="fi" id="ca-email" type="email" placeholder="james@buildco.com.au">
+      </div>
+      <div class="fg">
+        <label class="flb">Password</label>
+        <input class="fi" id="ca-pass" type="password" placeholder="Min. 8 characters">
+      </div>
+      <div class="fg">
+        <label class="flb">Company name</label>
+        <input class="fi" id="ca-company" placeholder="BuildCo Pty Ltd">
+      </div>
+      <div class="err" id="ca2-err">Please fill in all required fields.</div>
+      <div class="form-row-btns">
+        <button class="btn-back" onclick="goStep1()">← Back</button>
+        <button class="btn-submit" style="width:auto;padding:12px 28px;" onclick="doCreateAccount()">Complete setup →</button>
+      </div>
+    </div>
+
+  </div><!-- /form-body -->
+
+  <div class="demo-note" id="demo-note">Demo accounts open the live portal directly — no sign up required.<br>Register for a free pilot account to use with your real projects.</div>
+
+</div><!-- /card -->
+
+<script data-cfasync="false">
+var selectedPortal = null;
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.form-pane').forEach(function(p) { p.classList.remove('active'); });
+  event.target.classList.add('active');
+  if (tab === 'signin') {
+    document.getElementById('pane-signin').classList.add('active');
+    document.getElementById('demo-note').style.display = 'block';
+  } else {
+    document.getElementById('pane-create-1').classList.add('active');
+    document.getElementById('demo-note').style.display = 'none';
+  }
+}
+
+function selectPortal(type) {
+  selectedPortal = type;
+  document.querySelectorAll('.portal-opt').forEach(function(o) { o.classList.remove('selected'); });
+  document.getElementById('opt-' + (type === 'builder' ? 'builder' : 'subco')).classList.add('selected');
+}
+
+function goStep2() {
+  if (!selectedPortal) { document.getElementById('ca1-err').style.display='block'; return; }
+  document.getElementById('ca1-err').style.display='none';
+  document.getElementById('pane-create-1').classList.remove('active');
+  document.getElementById('pane-create-2').classList.add('active');
+}
+
+function goStep1() {
+  document.getElementById('pane-create-2').classList.remove('active');
+  document.getElementById('pane-create-1').classList.add('active');
+}
+
+function doSignIn() {
+  var email = document.getElementById('si-email').value.trim();
+  var pass  = document.getElementById('si-pass').value;
+  var err   = document.getElementById('si-err');
+  if (!email || !pass) { err.textContent='Please enter your email and password.'; err.style.display='block'; return; }
+  // Placeholder — show friendly message since auth isn't wired up yet
+  err.textContent='Sign in is coming soon. Try a demo account below, or register for early access at projectiqlive.netlify.app';
+  err.style.display='block';
+}
+
+function doCreateAccount() {
+  var first   = document.getElementById('ca-first').value.trim();
+  var last    = document.getElementById('ca-last').value.trim();
+  var email   = document.getElementById('ca-email').value.trim();
+  var pass    = document.getElementById('ca-pass').value;
+  var company = document.getElementById('ca-company').value.trim();
+  var err     = document.getElementById('ca2-err');
+  if (!first||!last||!email||!pass||!company) { err.textContent='Please fill in all required fields.'; err.style.display='block'; return; }
+  if (!email.includes('@')) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
+  if (pass.length < 8) { err.textContent='Password must be at least 8 characters.'; err.style.display='block'; return; }
+  err.style.display='none';
+  // Redirect to appropriate demo with a welcome message
+  window.location.href = selectedPortal === 'builder' ? 'builder-demo.html' : 'subcontractor-demo.html';
+}
+</script>
+
+</body>
+</html>
