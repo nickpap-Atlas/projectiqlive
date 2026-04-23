@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Project IQ — Subcontractor Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+var APP = { screen: 'login', user: null, activeProject: null, activeTab: 'overview' };
+var VAULT_VIEW = 'overview';
+
+var DEMO_USERS = {
+  'admin@precisionformwork.com.au': { pass:'demo123', company:'Precision Formwork Pty Ltd', abn:'12 345 678 901', contact:'Michael Bonavita' },
+  'demo@subco.com':                 { pass:'demo123', company:'Coastline Concrete Co',      abn:'98 765 432 100', contact:'Sarah Wells' }
+};
+
+var PROJECTS = [
+  { id:'NR2026', name:'Northern Ridge Mixed Use',    code:'NR-2026-001', client:'Coastal Pacific Developments', location:'St Leonards, Sydney NSW', type:'Commercial mixed use', builder:'BuildCo Constructions', pm:'James Mitchell', pm_phone:'0412 345 678', status:'active',    your_scope:'Formwork & falsework — Levels 1-4', contract_value:55000,  claimed:47300, paid:38500, pending:11000, progress:86,  start:'13/01/26', target_end:'14/12/26', eot_days:6, open_instructions:1, docs_expiring:1, next_claim_due:'03/04/26',
+    claims:[
+      { id:'PC-004', desc:'Formwork Level 1 — 70% complete', amount:11000, submitted:'20/03/26', due:'03/04/26', status:'submitted', paid:null },
+      { id:'PC-003', desc:'Ground floor formwork — complete', amount:15400, submitted:'01/03/26', due:'15/03/26', status:'paid',      paid:'18/03/26' },
+      { id:'PC-002', desc:'Footings & slab formwork',         amount:16500, submitted:'01/02/26', due:'15/02/26', status:'paid',      paid:'17/02/26' },
+      { id:'PC-001', desc:'Mobilisation & set-up',            amount:10450, submitted:'15/01/26', due:'29/01/26', status:'paid',      paid:'28/01/26' }
+    ],
+    instructions:[
+      { id:'INS-002', type:'instruction', title:'Proceed with formwork — Level 2', date:'28/03/26', urgent:true,  acked:false, body:'Proceed immediately with Level 2 formwork as per structural drawings Rev C. Ensure all propping is in place before concrete pour scheduled for 04/04/26.' },
+      { id:'VAR-001', type:'variation',   title:'Additional formwork — stairwell shaft', date:'15/03/26', urgent:false, acked:true, body:'Additional formwork required for stairwell shaft. Approved value $4,200 ex GST. Reference VAR-001 in your next claim.' },
+      { id:'INS-001', type:'instruction', title:'Mobilise to site — 13 January 2026', date:'10/01/26', urgent:false, acked:true, body:'Mobilise formwork crew from 13/01/26. Site induction required before commencement. Contact James Chen on arrival.' }
+    ],
+    docs:[
+      { name:'Workers Compensation Insurance',  type:'insurance', uploaded:'15/01/26', expiry:'07/04/26', days_left:9,   status:'expiring' },
+      { name:'SWMS — Formwork & Falsework',     type:'swms',      uploaded:'12/01/26', expiry:null,       days_left:null, status:'current' },
+      { name:'Public Liability Insurance $20M', type:'insurance', uploaded:'15/01/26', expiry:'30/06/26', days_left:93,  status:'current' },
+      { name:"Builder's Licence NSW BL 123456", type:'licence',   uploaded:'12/01/26', expiry:'31/12/26', days_left:278, status:'current' },
+      { name:'Subcontract Agreement NR-2026',   type:'contract',  uploaded:'10/01/26', expiry:null,       days_left:null, status:'signed' }
+    ],
+    crew:[ {date:'Fri 29/03',count:8},{date:'Thu 28/03',count:9},{date:'Wed 27/03',count:7},{date:'Tue 26/03',count:8},{date:'Mon 25/03',count:5},{date:'Sat 23/03',count:0},{date:'Fri 22/03',count:10},{date:'Thu 21/03',count:9} ]
+  },
+  { id:'HS2025', name:'Harbourside Apartments Stage 2', code:'HS-2025-007', client:'Harbourside Group', location:'Pyrmont, Sydney NSW', type:'Residential apartments', builder:'BuildCo Constructions', pm:'Lisa Park', pm_phone:'0401 234 567', status:'complete', your_scope:'Formwork — Podium & Levels 1-6', contract_value:88000, claimed:88000, paid:88000, pending:0, progress:100, start:'01/06/25', target_end:'28/02/26', eot_days:0, open_instructions:0, docs_expiring:0, next_claim_due:null,
+    claims:[
+      { id:'PC-008', desc:'Final completion — Level 6 & roof', amount:14200, submitted:'10/02/26', due:'24/02/26', status:'paid', paid:'22/02/26' },
+      { id:'PC-007', desc:'Levels 5-6 formwork',               amount:16800, submitted:'15/01/26', due:'29/01/26', status:'paid', paid:'28/01/26' },
+      { id:'PC-006', desc:'Levels 3-4 formwork',               amount:18500, submitted:'01/12/25', due:'15/12/25', status:'paid', paid:'14/12/25' },
+      { id:'PC-005', desc:'Podium & Levels 1-2',               amount:22000, submitted:'01/10/25', due:'15/10/25', status:'paid', paid:'13/10/25' },
+      { id:'PC-004', desc:'Mobilisation & footings',           amount:16500, submitted:'01/07/25', due:'15/07/25', status:'paid', paid:'14/07/25' }
+    ],
+    instructions:[
+      { id:'INS-008', type:'instruction', title:'Demobilise — project complete', date:'20/02/26', urgent:false, acked:true, body:'Formwork scope is complete. Please demobilise all equipment by 28/02/26. Retention will be released after defects period (12 months).' }
+    ],
+    docs:[
+      { name:'SWMS — Formwork & Falsework',     type:'swms',     uploaded:'01/06/25', expiry:null,       days_left:null, status:'current' },
+      { name:'Public Liability Insurance $20M', type:'insurance',uploaded:'01/06/25', expiry:'30/06/26', days_left:93,  status:'current' },
+      { name:'Subcontract Agreement HS-2025',   type:'contract', uploaded:'28/05/25', expiry:null,       days_left:null, status:'signed' }
+    ],
+    crew:[]
+  },
+  { id:'WB2026', name:'Westmead Business Park', code:'WB-2026-003', client:'WestGroup Developments', location:'Westmead, Sydney NSW', type:'Commercial / industrial', builder:'Apex Construct', pm:'David Nguyen', pm_phone:'0421 098 765', status:'upcoming', your_scope:'Formwork — Ground floor & tilt panels', contract_value:42000, claimed:0, paid:0, pending:0, progress:0, start:'14/04/26', target_end:'30/09/26', eot_days:0, open_instructions:1, docs_expiring:0, next_claim_due:'30/04/26',
+    claims:[],
+    instructions:[
+      { id:'INS-001', type:'instruction', title:'Site induction — 14 April 2026', date:'01/04/26', urgent:true, acked:false, body:'All crew must complete site induction before commencement. Contact site manager on 0421 098 765 to book. Induction takes approximately 2 hours. Bring photo ID and your White Card.' }
+    ],
+    docs:[
+      { name:'Subcontract Agreement WB-2026', type:'contract', uploaded:'25/03/26', expiry:null, days_left:null, status:'signed' }
+    ],
+    crew:[]
+  }
+];
+
+// ── COMPANY VAULT DATA ───────────────────────────────────────────────────────
+var VAULT = {
+  employees:[
+    { id:'E001', name:'Michael Bonavita',   role:'Formwork Supervisor', phone:'0412 111 222', email:'michael@precisionformwork.com.au', tickets:['White Card','Scaffolding — Basic','EWP — Boom','Forklift LF'], expiry:'30/06/26', status:'current' },
+    { id:'E002', name:'Tony Russo',          role:'Leading Hand',        phone:'0413 222 333', email:'tony@precisionformwork.com.au',    tickets:['White Card','Dogman — DG','Rigger — Basic','Scaffolding — Basic'], expiry:'31/12/26', status:'current' },
+    { id:'E003', name:'Jake Moretti',        role:'Formwork Carpenter',  phone:'0414 333 444', email:'jake@precisionformwork.com.au',    tickets:['White Card','Working at Heights'], expiry:'15/04/26', status:'expiring' },
+    { id:'E004', name:'Chris Papadopoulos', role:'Formwork Carpenter',  phone:'0415 444 555', email:'chris@precisionformwork.com.au',   tickets:['White Card','Working at Heights','Scaffolding — Basic'], expiry:'30/09/26', status:'current' },
+    { id:'E005', name:'Sam Nguyen',          role:'Formwork Labourer',   phone:'0416 555 666', email:'sam@precisionformwork.com.au',     tickets:['White Card'], expiry:'30/11/26', status:'current' }
+  ],
+  swms:[
+    { id:'SWMS-001', name:'Formwork & Falsework — General', version:'Rev 3', updated:'10/01/26', projects:['NR2026','HS2025','WB2026'], status:'current' },
+    { id:'SWMS-002', name:'Working at Heights',             version:'Rev 2', updated:'10/01/26', projects:['NR2026','HS2025'],          status:'current' },
+    { id:'SWMS-003', name:'Crane & Lifting Operations',     version:'Rev 1', updated:'05/02/26', projects:['NR2026'],                   status:'current' },
+    { id:'SWMS-004', name:'Concrete Placement',            version:'Rev 2', updated:'10/01/26', projects:['HS2025'],                   status:'current' },
+    { id:'SWMS-005', name:'Tilt Panel Erection',            version:'Rev 1', updated:'25/03/26', projects:['WB2026'],                   status:'current' }
+  ],
+  insurances:[
+    { id:'INS-001', name:'Public Liability Insurance — $20M', insurer:'QBE Insurance',  policy:'QL-2026-88821', expiry:'30/06/26', days_left:93, projects:['NR2026','HS2025','WB2026'], status:'current' },
+    { id:'INS-002', name:'Workers Compensation Insurance',    insurer:'icare NSW',       policy:'WC-45678-2026', expiry:'07/04/26', days_left:9,  projects:['NR2026'],                   status:'expiring' },
+    { id:'INS-003', name:'Professional Indemnity — $1M',     insurer:'Steadfast Group', policy:'PI-2026-33210', expiry:'31/12/26', days_left:276,projects:['NR2026','WB2026'],          status:'current' },
+    { id:'INS-004', name:'Plant & Equipment Insurance',       insurer:'CGU Insurance',   policy:'PE-2026-77123', expiry:'30/06/26', days_left:93, projects:['NR2026','HS2025'],          status:'current' }
+  ],
+  plant:[
+    { id:'PLT-001', name:'Concrete Boom Pump — BPA 007', type:'Boom pump', rego:'BPA007', service_due:'01/05/26', projects:['NR2026'],          status:'current' },
+    { id:'PLT-002', name:'Scissor Lift — EWP 12.5m',     type:'EWP',       rego:'EWP125', service_due:'15/06/26', projects:['NR2026','WB2026'], status:'current' },
+    { id:'PLT-003', name:'Forklift — Toyota 2.5T',        type:'Forklift',  rego:'FLT025', service_due:'30/04/26', projects:['NR2026'],          status:'expiring' }
+  ],
+  other:[
+    { id:'OTH-001', name:'Principal Contractor Licence — NSW', type:'licence', expiry:'31/12/26', days_left:276, projects:['NR2026','HS2025','WB2026'], status:'current' },
+    { id:'OTH-002', name:'ABN Registration Certificate',       type:'cert',    expiry:null,       days_left:null, projects:['NR2026','HS2025','WB2026'], status:'current' },
+    { id:'OTH-003', name:'GST Registration Certificate',       type:'cert',    expiry:null,       days_left:null, projects:['NR2026','HS2025','WB2026'], status:'current' }
+  ]
+};
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+window.goTo = function(screen) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.style.display='none'; });
+  var el = document.getElementById('screen-' + screen);
+  if (el) el.style.display = 'block';
+  APP.screen = screen;
+  window.scrollTo(0,0);
+};
+
+window.openProject = function(id) {
+  APP.activeProject = PROJECTS.filter(function(p){ return p.id===id; })[0];
+  APP.activeTab = 'overview';
+  renderProject();
+  window.goTo('project');
+};
+
+window.showTab = function(tab) {
+  APP.activeTab = tab;
+  document.querySelectorAll('.tab-pane').forEach(function(t){ t.style.display='none'; });
+  var el = document.getElementById('pane-' + tab);
+  if (el) el.style.display = 'block';
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  var btn = document.getElementById('tbtn-' + tab);
+  if (btn) btn.classList.add('active');
+};
+
+window.backToHome = function() {
+  APP.activeProject = null;
+  window.goTo('home');
+};
+
+window.showVault = function() {
+  VAULT_VIEW = 'overview';
+  window.goTo('vault');
+  renderVault();
+};
+
+window.openModal = function(id) {
+  var el = document.getElementById(id);
+  if (el) { el.style.display='flex'; document.body.style.overflow='hidden'; }
+};
+window.closeModal = function(id) {
+  var el = document.getElementById(id);
+  if (el) { el.style.display='none'; document.body.style.overflow=''; }
+};
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+window.doLogin = function() {
+  var email = document.getElementById('login-email').value.trim().toLowerCase();
+  var pass  = document.getElementById('login-pass').value;
+  var errEl = document.getElementById('login-error');
+  var u = DEMO_USERS[email];
+  if (!u || u.pass !== pass) {
+    errEl.textContent = 'Invalid email or password. Try demo@subco.com / demo123';
+    errEl.style.display = 'block';
+    return;
+  }
+  APP.user = { email:email, company:u.company, abn:u.abn, contact:u.contact };
+  errEl.style.display = 'none';
+  renderHome();
+  window.goTo('home');
+};
+
+window.doLogout = function() {
+  APP.user = null;
+  APP.activeProject = null;
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+  window.goTo('login');
+};
+
+window.loginDemo = function() {
+  document.getElementById('login-email').value = 'admin@precisionformwork.com.au';
+  document.getElementById('login-pass').value = 'demo123';
+  window.doLogin();
+};
+
+// ── HOME ──────────────────────────────────────────────────────────────────────
+function renderHome() {
+  var u = APP.user;
+  document.getElementById('home-company').textContent = u.company;
+  document.getElementById('home-contact').textContent = u.contact;
+  document.getElementById('home-abn').textContent = 'ABN ' + u.abn;
+
+  var totalPaid    = PROJECTS.reduce(function(s,p){ return s+p.paid; }, 0);
+  var totalPending = PROJECTS.reduce(function(s,p){ return s+p.pending; }, 0);
+  var activeCount  = PROJECTS.filter(function(p){ return p.status==='active'; }).length;
+  var attention    = PROJECTS.reduce(function(s,p){ return s+(p.open_instructions>0?1:0)+(p.docs_expiring>0?1:0); }, 0);
+
+  setText('stat-paid',      '$' + Math.round(totalPaid/1000) + 'k');
+  setText('stat-pending',   '$' + Math.round(totalPending/1000) + 'k');
+  setText('stat-quotes',    3); // 3 pending quotes (1 overdue, 2 due soon)
+  setText('stat-attention', attention + 1); // +1 for overdue quote
+
+  // Project cards
+  var grid = document.getElementById('project-cards');
+  grid.innerHTML = '';
+  PROJECTS.forEach(function(p) {
+    var sc = p.status==='active'?'var(--teal)':(p.status==='upcoming'?'var(--blue)':'var(--mu)');
+    var sb = p.status==='active'?'var(--tbg)':(p.status==='upcoming'?'var(--bbg)':'var(--bg4)');
+    var sl = p.status==='active'?'Active':(p.status==='upcoming'?'Upcoming':'Complete');
+
+    var alerts = '';
+    if (p.docs_expiring>0)      alerts += '<span class="chip chip-r">Doc expiring</span>';
+    if (p.open_instructions>0)  alerts += '<span class="chip chip-a">' + p.open_instructions + ' instruction</span>';
+    if (p.pending>0)             alerts += '<span class="chip chip-b">$' + Math.round(p.pending/1000) + 'k pending</span>';
+
+    var progHtml = p.status !== 'upcoming'
+      ? '<div class="proj-card-prog">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+            '<span style="font-size:11px;color:var(--mu);">Contract: $' + p.contract_value.toLocaleString() + '</span>' +
+            '<span style="font-size:11px;color:var(--teal);">Paid: $' + p.paid.toLocaleString() + '</span>' +
+          '</div>' +
+          '<div class="prog-wrap"><div class="prog-fill" style="width:' + p.progress + '%"></div></div>' +
+          '<div style="font-size:10px;color:var(--mu);margin-top:3px;">' + p.progress + '% claimed</div>' +
+        '</div>'
+      : '<div style="padding:6px 0 10px;font-size:12px;color:var(--blue);">Commencing ' + p.start + '</div>';
+
+    var card = document.createElement('div');
+    card.className = 'proj-card proj-open-trigger';
+    card.setAttribute('data-pid', p.id);
+    card.innerHTML =
+      '<div class="proj-card-head">' +
+        '<div style="flex:1;">' +
+          '<div class="proj-card-name">' + p.name + '</div>' +
+          '<div class="proj-card-meta">' + p.code + ' &middot; ' + p.builder + '</div>' +
+          '<div class="proj-card-meta">' + p.location + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div class="status-pill" style="background:' + sb + ';color:' + sc + ';">' + sl + '</div>' +
+          '<div style="font-size:10px;color:var(--mu);margin-top:4px;">' + p.start + ' &rarr; ' + p.target_end + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="proj-card-scope">Your scope: ' + p.your_scope + '</div>' +
+      progHtml +
+      (alerts ? '<div class="proj-card-alerts">' + alerts + '</div>' : '') +
+      '<div class="proj-card-footer">View project &rarr;</div>';
+    grid.appendChild(card);
+  });
+
+  // Attention list
+  var attList = document.getElementById('attention-list');
+  attList.innerHTML = '';
+  PROJECTS.forEach(function(p) {
+    if (p.docs_expiring > 0) {
+      var item = document.createElement('div');
+      item.className = 'att-row proj-open-trigger';
+      item.setAttribute('data-pid', p.id);
+      item.innerHTML =
+        '<div class="att-dot" style="background:var(--red);"></div>' +
+        '<div style="flex:1;"><div class="att-title">' + p.name + ' &mdash; document expiring</div>' +
+        '<div class="att-sub">Upload renewal before 07/04/26</div></div>' +
+        '<button class="btn btn-sm btn-g proj-open-trigger" data-pid="' + p.id + '">Fix &rarr;</button>';
+      attList.appendChild(item);
+    }
+    p.instructions.filter(function(i){ return !i.acked; }).forEach(function(inst) {
+      var item = document.createElement('div');
+      item.className = 'att-row proj-open-trigger';
+      item.setAttribute('data-pid', p.id);
+      item.innerHTML =
+        '<div class="att-dot" style="background:var(--amber);"></div>' +
+        '<div style="flex:1;"><div class="att-title">' + p.name + ' &mdash; ' + inst.id + ' needs acknowledgement</div>' +
+        '<div class="att-sub">' + inst.title + '</div></div>' +
+        '<button class="btn btn-sm btn-g proj-open-trigger" data-pid="' + p.id + '">View &rarr;</button>';
+      attList.appendChild(item);
+    });
+  });
+  if (!attList.children.length) {
+    attList.innerHTML = '<div style="padding:14px;text-align:center;color:var(--mu);font-size:12px;">&#10003; No items need attention</div>';
+  }
+
+  // Upcoming payments
+  var payList = document.getElementById('upcoming-payments');
+  payList.innerHTML = '';
+  var hasPay = false;
+  PROJECTS.forEach(function(p) {
+    p.claims.filter(function(c){ return c.status==='submitted'; }).forEach(function(cl) {
+      hasPay = true;
+      var row = document.createElement('div');
+      row.className = 'pay-row proj-open-trigger';
+      row.setAttribute('data-pid', p.id);
+      row.innerHTML =
+        '<div style="flex:1;">' +
+          '<div style="font-size:13px;font-weight:500;color:var(--tx);">' + p.name + '</div>' +
+          '<div style="font-size:11px;color:var(--mu);">' + cl.id + ' &middot; ' + cl.desc + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:14px;font-weight:600;color:var(--amber);">$' + cl.amount.toLocaleString() + '</div>' +
+          '<div style="font-size:10px;color:var(--mu);">Due ' + cl.due + '</div>' +
+        '</div>';
+      payList.appendChild(row);
+    });
+  });
+  if (!hasPay) {
+    payList.innerHTML = '<div style="padding:14px;text-align:center;color:var(--mu);font-size:12px;">No pending payments</div>';
+  }
+}
+
+// ── PROJECT ───────────────────────────────────────────────────────────────────
+function renderProject() {
+  var p = APP.activeProject;
+  setText('proj-name-header', p.name);
+  setText('proj-code-header', p.code + ' \xb7 ' + p.location);
+  setText('proj-scope-header', p.your_scope);
+
+  // Overview
+  var sc = p.status==='active'?'var(--teal)':(p.status==='upcoming'?'var(--blue)':'var(--mu)');
+  document.getElementById('pane-overview').innerHTML =
+    '<div class="stat-grid">' +
+      sCard('Contract value', '$' + p.contract_value.toLocaleString(), '', '') +
+      sCard('Total paid', '$' + p.paid.toLocaleString(), 'g', 'hg') +
+      sCard('Pending payment', p.pending > 0 ? '$' + p.pending.toLocaleString() : '\u2014', p.pending>0?'a':'m', p.pending>0?'ha':'') +
+      sCard('Claimed', p.progress + '%', p.progress===100?'g':'b', '') +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;">' +
+      '<div class="card-body">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
+          '<span style="font-size:12px;color:var(--mu);">Contract progress</span>' +
+          '<span style="font-size:12px;font-weight:600;color:var(--teal);">' + p.progress + '% of $' + p.contract_value.toLocaleString() + ' claimed</span>' +
+        '</div>' +
+        '<div class="prog-wrap" style="height:8px;"><div class="prog-fill" style="width:' + p.progress + '%"></div></div>' +
+        '<div style="display:flex;justify-content:space-between;margin-top:6px;">' +
+          '<span style="font-size:11px;color:var(--teal);">Paid: $' + p.paid.toLocaleString() + '</span>' +
+          (p.pending>0 ? '<span style="font-size:11px;color:var(--amber);">Awaiting: $' + p.pending.toLocaleString() + '</span>' : '') +
+          '<span style="font-size:11px;color:var(--mu);">Remaining: $' + (p.contract_value-p.claimed).toLocaleString() + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;"><div class="card-head"><span class="card-title">Project details</span></div><div class="card-body">' +
+      dRow('Builder', p.builder) + dRow('Project manager', p.pm + ' \xb7 ' + p.pm_phone) +
+      dRow('Client', p.client) + dRow('Type', p.type) +
+      dRow('Start', p.start) + dRow('Target completion', p.target_end) +
+      (p.eot_days > 0 ? dRow('EOT days approved', p.eot_days + ' days') : '') +
+    '</div></div>' +
+    '<div class="card" style="margin-bottom:12px;"><div class="card-head"><span class="card-title">Your scope</span></div>' +
+      '<div class="card-body" style="font-size:13px;">' + p.your_scope + '</div></div>';
+
+  // Claims
+  var clHtml = '<div class="action-row"><button class="btn btn-p" onclick="window.openModal(\'modal-claim\')">+ Submit new claim</button></div>' +
+    '<div style="padding:0 16px 4px;"><div class="stat-grid">' +
+      sCard('Total claimed', '$' + p.claimed.toLocaleString(), 'b', 'hb') +
+      sCard('Total paid', '$' + p.paid.toLocaleString(), 'g', 'hg') +
+    '</div></div>' +
+    '<div class="card" style="margin:0 16px 12px;">';
+  if (!p.claims.length) {
+    clHtml += '<div style="padding:24px;text-align:center;color:var(--mu);font-size:13px;">No claims yet. Project commences ' + p.start + '</div>';
+  } else {
+    clHtml += '<div class="tbl-wrap"><table><thead><tr><th>Claim #</th><th>Description</th><th>Amount</th><th>Submitted</th><th>Due</th><th>Status</th><th>Paid</th></tr></thead><tbody>';
+    p.claims.forEach(function(cl) {
+      var sc2 = cl.status==='paid'?'g':(cl.status==='submitted'?'a':'m');
+      var badge = cl.status==='paid'?'<span class="badge bg">Paid</span>':(cl.status==='submitted'?'<span class="badge ba">Submitted</span>':'<span class="badge bm">Draft</span>');
+      clHtml += '<tr><td class="code">' + cl.id + '</td><td class="bold">' + cl.desc + '</td><td class="' + sc2 + '">$' + cl.amount.toLocaleString() + '</td><td>' + cl.submitted + '</td><td>' + cl.due + '</td><td>' + badge + '</td><td class="' + (cl.paid?'g':'m') + '">' + (cl.paid||'\u2014') + '</td></tr>';
+    });
+    clHtml += '</tbody></table></div>';
+  }
+  clHtml += '</div>';
+  document.getElementById('pane-claims').innerHTML = clHtml;
+
+  // Instructions
+  var unacked = p.instructions.filter(function(i){ return !i.acked; });
+  var acked   = p.instructions.filter(function(i){ return i.acked; });
+  var instHtml = '<div style="padding:0 16px;">';
+  if (!p.instructions.length) {
+    instHtml += '<div style="padding:32px;text-align:center;color:var(--mu);">No instructions yet</div>';
+  } else {
+    if (unacked.length) { instHtml += '<div class="divider">Needs acknowledgement</div>'; unacked.forEach(function(i){ instHtml += iCard(i, p.id); }); }
+    if (acked.length)   { instHtml += '<div class="divider">Acknowledged</div>';           acked.forEach(function(i){ instHtml += iCard(i, p.id); }); }
+  }
+  instHtml += '</div>';
+  document.getElementById('pane-instructions').innerHTML = instHtml;
+
+  // Documents
+  var expDocs = p.docs.filter(function(d){ return d.status==='expiring'; });
+  var curDocs = p.docs.filter(function(d){ return d.status!=='expiring'; });
+  var docsHtml = '<div class="action-row"><button class="btn btn-p" onclick="window.openModal(\'modal-doc\')">+ Upload document</button></div><div style="padding:0 16px;">';
+  if (expDocs.length) { docsHtml += '<div class="divider">Expiring soon</div>'; expDocs.forEach(function(d){ docsHtml += dCard(d); }); }
+  docsHtml += '<div class="divider">Current &amp; valid</div>'; curDocs.forEach(function(d){ docsHtml += dCard(d); });
+  docsHtml += '</div>';
+  document.getElementById('pane-documents').innerHTML = docsHtml;
+
+  // Crew
+  var crewHtml = '<div class="action-row"><button class="btn btn-p" onclick="window.openModal(\'modal-crew\')">+ Log today\'s crew</button></div>';
+  if (!p.crew.length) {
+    crewHtml += '<div style="padding:32px;text-align:center;color:var(--mu);">No crew logged. Project commences ' + p.start + '</div>';
+  } else {
+    var total = p.crew.reduce(function(s,d){ return s+d.count; }, 0);
+    var maxC  = Math.max.apply(null, p.crew.map(function(d){ return d.count; }));
+    crewHtml += '<div style="padding:0 16px 4px;"><div class="stat-grid">' + sCard('Total worker-days', total, '', '') + sCard('Days logged', p.crew.length, '', '') + '</div></div>';
+    crewHtml += '<div class="card" style="margin:0 16px 12px;">';
+    p.crew.forEach(function(d) {
+      var pct = maxC > 0 ? Math.round(d.count/maxC*100) : 0;
+      crewHtml += '<div class="crew-day"><div class="crew-date">' + d.date + '</div>' +
+        '<div><div class="crew-workers" style="' + (d.count===0?'color:var(--mu)':'') + '">' + d.count + '</div><div class="crew-lbl">workers</div></div>' +
+        '<div class="crew-bar-wrap"><div class="crew-bar" style="width:' + pct + '%' + (d.count===0?';opacity:0':'') + '"></div></div></div>';
+    });
+    crewHtml += '</div>';
+  }
+  document.getElementById('pane-crew').innerHTML = crewHtml;
+
+  window.showTab('overview');
+}
+
+// ── VAULT ─────────────────────────────────────────────────────────────────────
+function renderVault() {
+  var totalDocs = VAULT.swms.length + VAULT.insurances.length + VAULT.plant.length + VAULT.other.length;
+  var expiring  = VAULT.insurances.concat(VAULT.plant).filter(function(d){ return d.status==='expiring'; }).length
+                + VAULT.employees.filter(function(e){ return e.status==='expiring'; }).length;
+  setText('vault-total-docs', totalDocs);
+  setText('vault-employees',  VAULT.employees.length);
+  setText('vault-expiring',   expiring);
+  setText('vault-projects',   PROJECTS.length);
+  showVaultSection('overview');
+}
+
+window.showVaultSection = function(section) {
+  VAULT_VIEW = section;
+  document.querySelectorAll('.vnav-btn').forEach(function(b){ b.classList.remove('active'); });
+  var btn = document.getElementById('vnav-' + section);
+  if (btn) btn.classList.add('active');
+
+  var el = document.getElementById('vault-content');
+  if (!el) return;
+
+  if (section === 'overview')   { el.innerHTML = vaultOverview(); }
+  else if (section === 'employees')  { el.innerHTML = vaultEmployees(); }
+  else if (section === 'swms')       { el.innerHTML = vaultDocList(VAULT.swms, 'swms', '\u26a0'); }
+  else if (section === 'insurances') { el.innerHTML = vaultDocList(VAULT.insurances, 'insurances', '\u{1F4CB}'); }
+  else if (section === 'plant')      { el.innerHTML = vaultDocList(VAULT.plant, 'plant', '\u{1F69C}'); }
+  else if (section === 'other')      { el.innerHTML = vaultDocList(VAULT.other, 'other', '\u{1F4C4}'); }
+};
+
+function vaultOverview() {
+  var html = '';
+  // Expiring alerts
+  var expItems = [];
+  VAULT.employees.filter(function(e){ return e.status==='expiring'; }).forEach(function(e){
+    expItems.push('<div class="att-row"><div class="att-dot" style="background:var(--red);"></div>' +
+      '<div style="flex:1;"><div class="att-title">' + e.name + ' &mdash; tickets expiring</div>' +
+      '<div class="att-sub">Check and renew before ' + e.expiry + '</div></div>' +
+      '<button class="btn btn-sm btn-g" data-sec="employees" data-action="vault-nav">View &rarr;</button></div>');
+  });
+  VAULT.insurances.filter(function(d){ return d.status==='expiring'; }).forEach(function(d){
+    expItems.push('<div class="att-row"><div class="att-dot" style="background:var(--red);"></div>' +
+      '<div style="flex:1;"><div class="att-title">' + d.name + ' &mdash; ' + d.days_left + ' days left</div>' +
+      '<div class="att-sub">Expires ' + d.expiry + ' &middot; ' + d.insurer + '</div></div>' +
+      '<button class="btn btn-sm btn-g" data-sec="insurances" data-action="vault-nav">Renew &rarr;</button></div>');
+  });
+  VAULT.plant.filter(function(d){ return d.status==='expiring'; }).forEach(function(d){
+    expItems.push('<div class="att-row"><div class="att-dot" style="background:var(--amber);"></div>' +
+      '<div style="flex:1;"><div class="att-title">' + d.name + ' &mdash; service due ' + d.service_due + '</div>' +
+      '<div class="att-sub">Rego: ' + d.rego + '</div></div>' +
+      '<button class="btn btn-sm btn-g" data-sec="plant" data-action="vault-nav">View &rarr;</button></div>');
+  });
+  html += '<div class="divider">Needs attention</div><div class="card" style="margin:0 16px 12px;">';
+  html += expItems.length ? expItems.join('') : '<div style="padding:14px;text-align:center;color:var(--mu);font-size:12px;">&#10003; All documents current</div>';
+  html += '</div>';
+
+  // Category grid
+  html += '<div class="divider">Categories</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 12px;">';
+  var cats = [
+    ['swms','&#9888;','SWMS', VAULT.swms.length + ' documents'],
+    ['employees','&#128119;','Employees & tickets', VAULT.employees.length + ' staff'],
+    ['insurances','&#128203;','Insurances', VAULT.insurances.length + ' policies'],
+    ['plant','&#128668;','Plant & equipment', VAULT.plant.length + ' items'],
+    ['other','&#128196;','Other documents', VAULT.other.length + ' docs'],
+    ['upload','+','Upload document','Add new']
+  ];
+  cats.forEach(function(cat) {
+    if (cat[0] === 'upload') {
+      html += '<div class="quick-btn" data-action="vault-upload"><div class="qi">' + cat[1] + '</div><div class="ql">' + cat[2] + '</div><div class="qs">' + cat[3] + '</div></div>';
+    } else {
+      html += '<div class="quick-btn" data-sec="' + cat[0] + '" data-action="vault-nav"><div class="qi">' + cat[1] + '</div><div class="ql">' + cat[2] + '</div><div class="qs">' + cat[3] + '</div></div>';
+    }
+  });
+  html += '</div>';
+  html += '<div class="divider">SWMS &mdash; quick view</div>';
+  html += vaultDocList(VAULT.swms, 'swms', '&#9888;');
+  return html;
+}
+
+function vaultEmployees() {
+  var html = '<div class="action-row"><button class="btn btn-p" onclick="window.openModal(\'modal-employee\')">+ Add employee</button></div>';
+  VAULT.employees.forEach(function(e) {
+    var exp = e.status === 'expiring';
+    var initials = e.name.split(' ').map(function(n){ return n[0]; }).join('').substring(0,2);
+    html += '<div class="card" style="margin:0 16px 10px;' + (exp?'border-color:rgba(248,81,73,0.25);':'') + '">' +
+      '<div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;">' +
+        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#553c9a,#2b6cb0);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;">' + initials + '</div>' +
+        '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:var(--tx);">' + e.name + '</div>' +
+        '<div style="font-size:11px;color:var(--mu);">' + e.role + ' &middot; ' + e.phone + '</div></div>' +
+        (exp ? '<span class="badge br">Expiring</span>' : '<span class="badge bg">Current</span>') +
+      '</div>' +
+      '<div style="padding:12px 14px;">' +
+        '<div style="font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-bottom:6px;">Tickets &amp; licences</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">' +
+          e.tickets.map(function(t){ return '<span style="background:var(--bbg);color:var(--blue);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:600;">' + t + '</span>'; }).join('') +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<div style="font-size:11px;color:' + (exp?'var(--red)':'var(--mu)') + ';">Tickets expire: ' + e.expiry + '</div>' +
+          '<button class="btn btn-g btn-sm">View profile</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  });
+  return html;
+}
+
+function vaultDocList(docs, type, icon) {
+  var html = '<div class="action-row"><button class="btn btn-p" onclick="window.openModal(\'modal-vault-upload\')">+ Upload</button></div>';
+  if (!docs.length) return html + '<div style="padding:32px;text-align:center;color:var(--mu);">No documents yet</div>';
+  docs.forEach(function(d) {
+    var exp = d.status === 'expiring';
+    var projNames = (d.projects||[]).map(function(pid){ var p = PROJECTS.filter(function(pr){ return pr.id===pid; })[0]; return p?p.code:'?'; }).join(', ');
+    var projCount = (d.projects||[]).length;
+    var expiryHtml = exp
+      ? '<div style="font-size:11px;font-weight:600;color:var(--red);">&#9888; ' + (d.expiry||d.service_due) + '</div><div style="font-size:10px;color:var(--mu);">' + (d.days_left||'') + ' days</div>'
+      : (d.expiry||d.service_due ? '<div style="font-size:11px;color:var(--amber);">' + (d.expiry||d.service_due) + '</div>' : '<div style="font-size:11px;color:var(--teal);">No expiry</div>');
+
+    html += '<div class="card" style="margin:0 16px 10px;' + (exp?'border-color:rgba(248,81,73,0.3);':'') + '">' +
+      '<div class="doc-row">' +
+        '<div class="doc-icon">' + icon + '</div>' +
+        '<div class="doc-info">' +
+          '<div class="doc-name">' + d.name + '</div>' +
+          '<div class="doc-meta">' + (d.version?'Version: '+d.version+' &middot; ':'') + (d.insurer?d.insurer+' &middot; ':'') + (d.rego?'Rego: '+d.rego+' &middot; ':'') + (d.updated?'Updated: '+d.updated:'') + '</div>' +
+          (projNames ? '<div style="font-size:10px;color:var(--blue);margin-top:2px;">&#128204; ' + projNames + '</div>' : '') +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' + expiryHtml + '</div>' +
+        '<button class="btn btn-g btn-sm">View</button>' +
+      '</div>' +
+      '<div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;">' +
+        '<div style="font-size:11px;color:var(--mu);">Assigned to <strong style="color:var(--tx);">' + projCount + '</strong> project' + (projCount!==1?'s':'') + (projNames?' ('+projNames+')':'') + '</div>' +
+        '<button class="btn btn-b btn-sm" data-doc-id="' + d.id + '" data-doc-type="' + type + '" data-action="push-doc">Push to project &rarr;</button>' +
+      '</div>' +
+    '</div>';
+  });
+  return html;
+}
+
+// ── PUSH TO PROJECT ───────────────────────────────────────────────────────────
+window.openPushModal = function(docId, docType) {
+  var docArr = VAULT[docType] || [];
+  var doc = docArr.filter(function(d){ return d.id===docId; })[0];
+  var modal = document.getElementById('modal-push');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setText('push-doc-name', doc ? doc.name : docId);
+  document.getElementById('push-doc-id').value   = docId;
+  document.getElementById('push-doc-type').value = docType;
+  var list = document.getElementById('push-project-list');
+  list.innerHTML = '';
+  PROJECTS.forEach(function(p) {
+    var checked = doc && doc.projects && doc.projects.indexOf(p.id) > -1;
+    var lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;';
+    lbl.innerHTML = '<input type="checkbox" value="' + p.id + '"' + (checked?' checked':'') + ' style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer;">' +
+      '<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:var(--tx);">' + p.name + '</div>' +
+      '<div style="font-size:11px;color:var(--mu);">' + p.code + '</div></div>';
+    list.appendChild(lbl);
+  });
+};
+
+window.confirmPush = function() {
+  var docId   = document.getElementById('push-doc-id').value;
+  var docType = document.getElementById('push-doc-type').value;
+  var cbs = document.querySelectorAll('#push-project-list input[type=checkbox]');
+  var selected = [];
+  cbs.forEach(function(cb){ if (cb.checked) selected.push(cb.value); });
+  var docArr = VAULT[docType] || [];
+  var doc = docArr.filter(function(d){ return d.id===docId; })[0];
+  if (doc) doc.projects = selected;
+  window.closeModal('modal-push');
+  window.showToast('Document assigned to ' + selected.length + ' project' + (selected.length!==1?'s':''));
+  window.showVaultSection(VAULT_VIEW);
+};
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+window.submitClaim = function() {
+  var amt  = document.getElementById('claim-amount').value;
+  var desc = document.getElementById('claim-desc').value;
+  if (!amt||!desc) { alert('Please enter an amount and description.'); return; }
+  if (APP.activeProject) {
+    var id = 'PC-' + String(APP.activeProject.claims.length+1).padStart(3,'0');
+    APP.activeProject.claims.unshift({ id:id, desc:desc, amount:parseFloat(amt), submitted:'30/03/26', due:'14/04/26', status:'submitted', paid:null });
+    APP.activeProject.pending += parseFloat(amt);
+    window.closeModal('modal-claim');
+    renderProject();
+  }
+  window.showToast('Claim submitted successfully');
+  document.getElementById('claim-amount').value = '';
+  document.getElementById('claim-desc').value = '';
+};
+
+window.submitCrew = function() {
+  var n = document.getElementById('crew-count').value;
+  if (!n) { alert('Enter crew count.'); return; }
+  window.closeModal('modal-crew');
+  window.showToast('Crew log saved — ' + n + ' workers on site today');
+};
+
+window.submitDoc = function() {
+  window.closeModal('modal-doc');
+  window.showToast('Document uploaded successfully');
+};
+
+window.ackInstruction = function(pid, instId) {
+  var project = PROJECTS.filter(function(p){ return p.id===pid; })[0];
+  if (project) {
+    var inst = project.instructions.filter(function(i){ return i.id===instId; })[0];
+    if (inst) { inst.acked = true; project.open_instructions = project.instructions.filter(function(i){ return !i.acked; }).length; }
+  }
+  window.showToast(instId + ' acknowledged');
+  renderProject();
+  if (APP.user) renderHome();
+};
+
+window.showToast = function(msg) {
+  var t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = '&#10003; ' + msg;
+  t.style.display = 'block'; t.style.opacity = '1';
+  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.style.display='none'; },400); }, 2800);
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+
+function sCard(lbl, val, vc, cc) {
+  return '<div class="stat-card ' + cc + '"><div class="stat-lbl">' + lbl + '</div><div class="stat-val ' + vc + '" style="font-size:18px;">' + val + '</div></div>';
+}
+function dRow(lbl, val) {
+  return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
+    '<div style="font-size:12px;color:var(--mu);">' + lbl + '</div>' +
+    '<div style="font-size:12px;font-weight:500;color:var(--tx);text-align:right;max-width:60%;">' + val + '</div></div>';
+}
+function iCard(inst, pid) {
+  var typeClass = inst.type==='variation'?'bp':'bb';
+  var typeLabel = inst.type==='variation'?'Variation':'Instruction';
+  var cardClass = inst.urgent && !inst.acked ? 'urgent' : 'normal';
+  return '<div class="inst-card ' + cardClass + '" style="margin-bottom:10px;">' +
+    '<div class="inst-head">' +
+      '<div style="flex:1;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">' +
+          '<span class="badge ' + typeClass + '">' + typeLabel + '</span>' +
+          '<span style="font-family:var(--fm);font-size:10px;color:var(--mu);">' + inst.id + '</span>' +
+          (inst.urgent&&!inst.acked?'<span class="badge br">Urgent</span>':'') +
+        '</div>' +
+        '<div style="font-size:14px;font-weight:600;color:var(--tx);">' + inst.title + '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--mu);flex-shrink:0;">' + inst.date + '</div>' +
+    '</div>' +
+    '<div class="inst-body">' + inst.body + '</div>' +
+    '<div class="inst-foot">' +
+      (inst.acked
+        ? '<span class="badge bg" style="padding:6px 14px;">&#10003; Acknowledged</span>'
+        : '<button class="btn btn-p" style="flex:1;justify-content:center;" data-pid="' + pid + '" data-inst="' + inst.id + '" data-action="ack-inst">&#10003; Acknowledge</button>') +
+    '</div>' +
+  '</div>';
+}
+function dCard(d) {
+  var exp = d.status === 'expiring';
+  var icons = { insurance:'&#128203;', swms:'&#9888;', licence:'&#128250;', contract:'&#128196;' };
+  var icon = icons[d.type]||'&#128206;';
+  return '<div class="card" style="margin-bottom:8px;' + (exp?'border-color:rgba(248,81,73,0.3);':'') + '">' +
+    '<div class="doc-row">' +
+      '<div class="doc-icon">' + icon + '</div>' +
+      '<div class="doc-info"><div class="doc-name">' + d.name + '</div><div class="doc-meta">Uploaded ' + d.uploaded + '</div></div>' +
+      '<div style="text-align:right;flex-shrink:0;">' +
+        (exp ? '<div style="font-size:11px;font-weight:600;color:var(--red);">Expires ' + d.expiry + '</div><div style="font-size:10px;color:var(--mu);">' + d.days_left + ' days</div>'
+             : (d.expiry ? '<div style="font-size:11px;color:var(--amber);">Exp ' + d.expiry + '</div>' : '<div style="font-size:11px;color:var(--teal);">No expiry</div>')) +
+      '</div>' +
+      '<button class="btn btn-g btn-sm">' + (exp?'Renew':'View') + '</button>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── EVENT DELEGATION (avoids all onclick quoting issues) ─────────────────────
+document.addEventListener('click', function(e) {
+  // Project open
+  var projEl = e.target.closest('.proj-open-trigger');
+  if (projEl) { var pid = projEl.getAttribute('data-pid'); if (pid) window.openProject(pid); return; }
+  // Vault section nav
+  var vnavEl = e.target.closest('[data-action="vault-nav"]');
+  if (vnavEl) { window.showVaultSection(vnavEl.getAttribute('data-sec')); return; }
+  // Vault upload
+  var vupEl = e.target.closest('[data-action="vault-upload"]');
+  if (vupEl) { window.openModal('modal-vault-upload'); return; }
+  // Push doc to project
+  var pushEl = e.target.closest('[data-action="push-doc"]');
+  if (pushEl) { e.stopPropagation(); window.openPushModal(pushEl.getAttribute('data-doc-id'), pushEl.getAttribute('data-doc-type')); return; }
+  // Acknowledge instruction
+  var ackEl = e.target.closest('[data-action="ack-inst"]');
+  if (ackEl) { window.ackInstruction(ackEl.getAttribute('data-pid'), ackEl.getAttribute('data-inst')); return; }
+  // Modal close on backdrop
+  if (e.target.classList.contains('modal-bg')) { e.target.style.display='none'; document.body.style.overflow=''; return; }
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+  window.loginDemo(); // Skip login
+  document.querySelectorAll('.modal-card').forEach(function(c){
+    c.addEventListener('click', function(e){ e.stopPropagation(); });
+  });
+  document.getElementById('login-pass').addEventListener('keydown', function(e){
+    if (e.key==='Enter') window.doLogin();
+  });
+});
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0D1117;--bg2:#161B22;--bg3:#1C2333;--bg4:#21262D;
+  --b1:rgba(255,255,255,0.08);--b2:rgba(255,255,255,0.14);
+  --tx:#E6EDF3;--mu:#7D8590;--mu2:#4A5568;
+  --teal:#3FB950;--teal2:#238636;--tbg:rgba(63,185,80,0.1);
+  --blue:#58A6FF;--bbg:rgba(88,166,255,0.1);
+  --amber:#D29922;--abg:rgba(210,153,34,0.1);
+  --red:#F85149;--rbg:rgba(248,81,73,0.1);
+  --purple:#BC8CFF;--pbg:rgba(188,140,255,0.1);
+  --ff:'Geist',system-ui,sans-serif;--fm:'Geist Mono',monospace;--max:640px;
+}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);font-size:14px;line-height:1.5;min-height:100vh;padding-bottom:88px;}
+.screen{display:none;}
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.login-box{width:100%;max-width:400px;}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.login-mark{width:44px;height:44px;background:var(--teal2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;font-family:var(--fm);}
+.login-brand{font-size:22px;font-weight:700;color:var(--tx);}
+.login-sub{font-size:13px;color:var(--mu);margin-top:2px;}
+.login-form{display:flex;flex-direction:column;gap:14px;}
+.login-demo{margin-top:16px;padding:12px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;font-size:11px;color:var(--mu);text-align:center;line-height:1.6;}
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--b1);padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.t-logo{display:flex;align-items:center;gap:9px;}
+.t-mark{width:30px;height:30px;background:var(--teal2);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;font-family:var(--fm);}
+.t-brand{font-size:14px;font-weight:600;color:var(--tx);}
+.t-right{display:flex;align-items:center;gap:8px;}
+.user-pill{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--b1);border-radius:18px;padding:4px 12px 4px 5px;cursor:pointer;}
+.user-av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#553c9a,#2b6cb0);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;}
+.user-nm{font-size:11px;font-weight:500;color:var(--tx);}
+/* BACK BAR */
+.back-bar{background:var(--bg3);border-bottom:1px solid var(--b1);padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.back-bar:hover{background:var(--bg4);}
+.back-proj-name{font-size:14px;font-weight:600;color:var(--tx);}
+/* MAIN */
+.main{max-width:var(--max);margin:0 auto;padding-bottom:130px;}
+.home-header{padding:16px 16px 0;}
+.home-company{font-size:20px;font-weight:700;color:var(--tx);letter-spacing:-0.4px;}
+.home-meta{font-size:12px;color:var(--mu);margin-top:3px;}
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;padding:14px 16px 4px;}
+.stat-card{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;padding:13px 14px;}
+.stat-card.hg{border-color:rgba(63,185,80,0.3);}.stat-card.ha{border-color:rgba(210,153,34,0.3);}
+.stat-card.hr{border-color:rgba(248,81,73,0.25);}.stat-card.hb{border-color:rgba(88,166,255,0.25);}
+.stat-lbl{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;}
+.stat-val{font-size:24px;font-weight:700;color:var(--tx);letter-spacing:-0.5px;line-height:1;}
+.stat-val.g{color:var(--teal);}.stat-val.a{color:var(--amber);}.stat-val.r{color:var(--red);}.stat-val.b{color:var(--blue);}.stat-val.m{color:var(--mu);}
+/* PROJECT CARDS */
+.proj-card{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden;margin-bottom:12px;cursor:pointer;transition:all 0.15s;}
+.proj-card:hover{border-color:var(--b2);transform:translateY(-1px);}
+.proj-card-head{padding:14px 14px 8px;display:flex;align-items:flex-start;gap:10px;}
+.proj-card-name{font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-0.3px;margin-bottom:3px;}
+.proj-card-meta{font-size:11px;color:var(--mu);line-height:1.5;}
+.proj-card-scope{padding:0 14px 10px;font-size:12px;color:var(--blue);}
+.proj-card-prog{padding:0 14px 12px;}
+.proj-card-alerts{padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;}
+.proj-card-footer{padding:10px 14px;border-top:1px solid var(--b1);font-size:12px;font-weight:600;color:var(--mu);text-align:right;}
+.status-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;}
+.chip-r{background:var(--rbg);color:var(--red);}.chip-a{background:var(--abg);color:var(--amber);}.chip-b{background:var(--bbg);color:var(--blue);}
+/* LAYOUT */
+.divider{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--mu);display:flex;align-items:center;gap:8px;padding:14px 16px 8px;}
+.divider::after{content:'';flex:1;height:1px;background:var(--b1);}
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.card-head{padding:11px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:0.07em;}
+.card-body{padding:14px;}
+.action-row{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap;}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+.bg{background:var(--tbg);color:var(--teal);}.br{background:var(--rbg);color:var(--red);}.ba{background:var(--abg);color:var(--amber);}.bb{background:var(--bbg);color:var(--blue);}.bm{background:var(--bg4);color:var(--mu);}.bp{background:var(--pbg);color:var(--purple);}
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:480px;}
+th{font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:0.07em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--b1);background:var(--bg3);white-space:nowrap;}
+td{padding:10px 12px;font-size:12px;color:var(--tx);border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.02);}
+td.code{font-family:var(--fm);font-size:11px;color:var(--mu);}td.bold{font-weight:600;}td.g{color:var(--teal);font-weight:500;}td.r{color:var(--red);font-weight:500;}td.a{color:var(--amber);}td.m{color:var(--mu);}
+/* PROGRESS */
+.prog-wrap{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--teal2),var(--teal));border-radius:3px;}
+/* ROWS */
+.pay-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;}
+.pay-row:last-child{border-bottom:none;}
+.att-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.att-row:last-child{border-bottom:none;}
+.att-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.att-title{font-size:12px;font-weight:500;color:var(--tx);margin-bottom:2px;}
+.att-sub{font-size:11px;color:var(--mu);}
+/* TABS */
+.tab-bar{display:flex;background:var(--bg2);border-bottom:1px solid var(--b1);overflow-x:auto;scrollbar-width:none;}
+.tab-bar::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;padding:11px 16px;font-family:var(--ff);font-size:12px;font-weight:500;color:var(--mu);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab-btn:hover{color:var(--tx);}
+.tab-pane{display:none;}
+/* VAULT NAV */
+.vnav-btn{flex-shrink:0;padding:10px 14px;font-family:var(--ff);font-size:12px;font-weight:500;color:var(--mu);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;}
+.vnav-btn:hover{color:var(--tx);}
+.vnav-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+/* INST + DOC */
+.inst-card{border-radius:10px;overflow:hidden;margin-bottom:10px;}
+.inst-card.urgent{border:1px solid rgba(248,81,73,0.3);background:rgba(248,81,73,0.03);}
+.inst-card.normal{border:1px solid var(--b1);background:var(--bg3);}
+.inst-head{padding:12px 14px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.inst-body{padding:12px 14px;font-size:13px;color:var(--tx);line-height:1.6;}
+.inst-foot{padding:10px 14px;display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.05);}
+.doc-row{display:flex;align-items:center;gap:12px;padding:12px 14px;}
+.doc-icon{font-size:20px;flex-shrink:0;}
+.doc-info{flex:1;}
+.doc-name{font-size:13px;font-weight:500;color:var(--tx);margin-bottom:2px;}
+.doc-meta{font-size:11px;color:var(--mu);}
+/* CREW */
+.crew-day{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.crew-day:last-child{border-bottom:none;}
+.crew-date{font-family:var(--fm);font-size:11px;color:var(--mu);width:72px;flex-shrink:0;}
+.crew-workers{font-size:20px;font-weight:700;color:var(--teal);width:38px;flex-shrink:0;}
+.crew-lbl{font-size:9px;color:var(--mu);display:block;}
+.crew-bar-wrap{flex:1;background:var(--bg4);border-radius:3px;height:5px;overflow:hidden;}
+.crew-bar{height:100%;background:linear-gradient(90deg,var(--teal2),var(--teal));border-radius:3px;}
+/* QUICK BTNS */
+.quick-btn{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:14px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;cursor:pointer;transition:all 0.15s;}
+.quick-btn:hover{background:var(--bg4);border-color:var(--b2);}
+.qi{font-size:22px;}.ql{font-size:12px;font-weight:600;color:var(--tx);}.qs{font-size:10px;color:var(--mu);}
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--b1);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px;cursor:pointer;border:none;background:none;color:var(--mu);font-family:var(--ff);font-size:10px;gap:3px;transition:color 0.15s;}
+.nav-btn.active{color:var(--blue);}
+.nav-btn:hover{color:var(--tx);}
+.nav-icon{font-size:19px;line-height:1;}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;text-decoration:none;white-space:nowrap;}
+.btn-p{background:var(--teal2);color:white;border:1px solid rgba(63,185,80,0.3);}
+.btn-p:hover{background:#2ea043;}
+.btn-g{background:transparent;color:var(--mu);border:1px solid var(--b1);}
+.btn-g:hover{background:var(--bg3);color:var(--tx);border-color:var(--b2);}
+.btn-b{background:var(--bbg);color:var(--blue);border:1px solid rgba(88,166,255,0.2);}
+.btn-sm{padding:5px 12px;font-size:11px;font-weight:500;}
+.btn-full{width:100%;justify-content:center;}
+/* FORMS */
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.flb{font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:0.06em;}
+.fi,.fs,.fta{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;font-family:var(--ff);font-size:14px;color:var(--tx);outline:none;width:100%;}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--blue);}
+.fta{resize:vertical;min-height:80px;}
+.fup{background:var(--bg3);border:2px dashed var(--b2);border-radius:8px;padding:20px;text-align:center;cursor:pointer;font-size:13px;color:var(--mu);}
+.fup:hover{border-color:var(--blue);color:var(--blue);}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:flex-end;justify-content:center;}
+.modal-card{background:var(--bg2);border:1px solid var(--b2);border-radius:20px 20px 0 0;width:100%;max-width:var(--max);max-height:90vh;display:flex;flex-direction:column;}
+.mh{padding:16px 18px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;}
+.mh::before{content:'';position:absolute;left:50%;top:8px;transform:translateX(-50%);width:36px;height:4px;background:var(--b2);border-radius:2px;}
+.mt{font-size:16px;font-weight:700;color:var(--tx);}
+.mx{background:none;border:none;color:var(--mu);font-size:22px;cursor:pointer;line-height:1;}
+.mb{padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.mf{padding:14px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0;}
+/* TOAST */
+#toast{display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--teal2);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;color:var(--teal);z-index:999;white-space:nowrap;transition:opacity 0.4s;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+/* ERR */
+.err-box{background:var(--rbg);border:1px solid rgba(248,81,73,0.25);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--red);display:none;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+@media(min-width:600px){
+  .modal-bg{align-items:center;padding:20px;}
+  .modal-card{border-radius:16px;max-height:85vh;}
+  .mh::before{display:none;}
+}
+
+/* ── MOBILE FIXES ── */
+@media(max-width:480px){
+  /* CTA banner — stack vertically */
+  #subco-cta-banner{
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    gap:10px !important;
+    padding:10px 14px !important;
+  }
+  #subco-cta-banner > div:last-child{
+    width:100% !important;
+    display:flex !important;
+    gap:8px !important;
+  }
+  #subco-cta-banner > div:last-child a,
+  #subco-cta-banner > div:last-child button{
+    flex:1 !important;
+    justify-content:center !important;
+    text-align:center !important;
+  }
+
+  /* Project screen tabs — scroll horizontally */
+  .tab-bar{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    flex-wrap:nowrap !important;
+    scrollbar-width:none;
+  }
+  .tab-bar::-webkit-scrollbar{display:none;}
+  .tab-btn{flex-shrink:0;}
+
+  /* Tables in project screen */
+  .card-body table,
+  .card table{
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    min-width:400px;
+  }
+
+  /* Vault quick buttons */
+  .quick-btn{min-width:140px;}
+
+  /* Modals full screen from bottom */
+  .modal-bg{align-items:flex-end !important;}
+  .modal-card{
+    border-radius:14px 14px 0 0 !important;
+    max-height:92vh !important;
+    overflow-y:auto !important;
+  }
+
+  /* Register interest modal */
+  #modal-subco-interest{align-items:flex-end !important;}
+  #modal-subco-interest .modal-card{
+    border-radius:14px 14px 0 0 !important;
+    max-height:92vh !important;
+    overflow-y:auto !important;
+  }
+
+  /* Stat grid on home screen */
+  .stat-grid{grid-template-columns:1fr 1fr !important;}
+
+  /* Payment claim rows */
+  .claim-row{flex-direction:column !important;gap:6px !important;align-items:flex-start !important;}
+
+  /* Vault section grid */
+  .vault-grid{grid-template-columns:1fr !important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div class="screen" id="screen-login">
+  <div class="login-wrap"><div class="login-box">
+    <div class="login-logo"><div class="login-mark">IQ</div><div><div class="login-brand">Project IQ</div><div class="login-sub">Subcontractor Portal</div></div></div>
+    <div style="font-size:20px;font-weight:700;color:var(--tx);margin-bottom:6px;">Sign in to your portal</div>
+    <div style="font-size:13px;color:var(--mu);margin-bottom:24px;line-height:1.6;">Access all your active projects, submit progress claims, manage compliance documents and acknowledge builder instructions.</div>
+    <div class="login-form">
+      <div class="fg"><label class="flb">Email address</label><input id="login-email" type="email" class="fi" placeholder="you@yourcompany.com.au"></div>
+      <div class="fg"><label class="flb">Password</label><input id="login-pass" type="password" class="fi" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
+      <div id="login-error" class="err-box"></div>
+      <button class="btn btn-p btn-full" onclick="window.doLogin()">Sign in &rarr;</button>
+    </div>
+    <div class="login-demo"><strong>Demo:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5233363f3b3c12222037313b213b3d3c343d203f253d20397c313d3f7c3327">[email&#160;protected]</a> &middot; demo123<br>
+      <button onclick="window.loginDemo()" style="margin-top:8px;background:var(--bg4);border:1px solid var(--b2);color:var(--blue);border-radius:6px;padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">Auto-fill &amp; sign in</button>
+    </div>
+    <div style="margin-top:16px;padding:10px;background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.2);border-radius:8px;font-size:11px;color:var(--amber);text-align:center;">
+      &#9203; Subcontractor portal is in active development. <a href="/cdn-cgi/l/email-protection#93fdfaf0f8d3e3e1fcf9f6f0e7fae2e7f6f0fbbdf0fcfeace0e6f1f9f6f0e7aec3e1fcf9f6f0e7b3dac2b3711307b3c0e6f1f0fcfde7e1f2f0e7fce1b3c3fce1e7f2ffb3dafde7f6e1f6e0e7" style="color:var(--amber);">Register interest &rarr;</a>
+    </div>
+  </div></div>
+</div>
+
+<!-- ══ HOME ══ -->
+<div class="screen" id="screen-home">
+  <div class="topbar">
+    <div class="t-logo"><div class="t-mark">IQ</div><span class="t-brand">Project IQ</span></div>
+    <div class="t-right">
+      <div class="user-pill" onclick="window.doLogout()">
+        <div class="user-av">PF</div><span class="user-nm" id="home-company">—</span>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="home-header">
+      <div class="home-company" id="home-company">—</div>
+      <div class="home-meta" id="home-contact">—</div>
+      <div class="home-meta" id="home-abn">—</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card hg"><div class="stat-lbl">Total paid</div><div class="stat-val g" id="stat-paid">—</div></div>
+      <div class="stat-card ha"><div class="stat-lbl">Awaiting payment</div><div class="stat-val a" id="stat-pending">—</div></div>
+      <div class="stat-card ha" style="cursor:pointer;" onclick="window.showQuotes()"><div class="stat-lbl">Quotes pending</div><div class="stat-val a" id="stat-quotes">3</div></div>
+      <div class="stat-card hr"><div class="stat-lbl">Needs attention</div><div class="stat-val r" id="stat-attention">—</div></div>
+    </div>
+    <div class="divider">Needs attention</div>
+    <div class="card" style="margin:0 16px 12px;"><div id="attention-list"></div></div>
+    <div class="divider">Your projects</div>
+    <div style="padding:0 16px;" id="project-cards"></div>
+    <div class="divider">Upcoming payments</div>
+    <div class="card" style="margin:0 16px 24px;"><div id="upcoming-payments"></div></div>
+
+    <div class="divider">Pending quotes</div>
+    <div style="padding:0 16px 8px;display:flex;flex-direction:column;gap:8px;">
+
+      <div class="card" style="border-left:3px solid var(--red);cursor:pointer;" onclick="window.showQuotes()">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-003 — Temporary propping to Level 1</div>
+          <span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:4px;background:rgba(248,81,73,0.1);color:var(--red);flex-shrink:0;margin-left:8px;">OVERDUE</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu);">Northern Ridge Mixed Use · Quote overdue</div>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="window.showQuotes()">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-004 — Additional slab reinforcement</div>
+          <span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:4px;background:rgba(210,153,34,0.12);color:var(--amber);flex-shrink:0;margin-left:8px;">DUE 04/04</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu);">Northern Ridge Mixed Use · Quote required</div>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="window.showQuotes()">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-006 — Formwork to lift shaft extension</div>
+          <span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:4px;background:rgba(210,153,34,0.12);color:var(--amber);flex-shrink:0;margin-left:8px;">DUE 07/04</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu);">Northern Ridge Mixed Use · Quote required</div>
+      </div>
+
+      <button onclick="window.showQuotes()" style="background:none;border:none;color:var(--blue);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;padding:4px 0 16px;text-align:left;">View all quotes →</button>
+    </div>
+
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="bnav-home" onclick="window.goTo('home')"><span class="nav-icon">&#127968;</span>Home</button>
+    <button class="nav-btn" id="bnav-vault" onclick="window.showVault()"><span class="nav-icon">&#128451;</span>Vault</button>
+    <button class="nav-btn" id="bnav-claims" onclick="alert('All claims view — coming soon')"><span class="nav-icon">&#128176;</span>Claims</button>
+    <button class="nav-btn" id="bnav-quotes" onclick="window.showQuotes()"><span class="nav-icon">&#128203;</span>Quotes</button>
+    <button class="nav-btn" id="bnav-signout" onclick="window.doLogout()"><span class="nav-icon">&#128682;</span>Sign out</button>
+  </nav>
+</div>
+
+<!-- ══ PROJECT ══ -->
+<div class="screen" id="screen-project">
+  <div class="topbar">
+    <div class="t-logo"><div class="t-mark">IQ</div><span class="t-brand">Project IQ</span></div>
+    <div class="t-right"><button class="btn btn-g btn-sm" onclick="window.backToHome()">&larr; All projects</button></div>
+  </div>
+  <div class="back-bar" onclick="window.backToHome()">
+    <span style="color:var(--mu);font-size:16px;">&larr;</span>
+    <div style="flex:1;">
+      <div class="back-proj-name" id="proj-name-header">—</div>
+      <div style="font-size:11px;color:var(--mu);" id="proj-code-header">—</div>
+    </div>
+    <div style="font-size:11px;color:var(--blue);flex-shrink:0;" id="proj-scope-header"></div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tbtn-overview"     onclick="window.showTab('overview')">Overview</button>
+    <button class="tab-btn"        id="tbtn-claims"       onclick="window.showTab('claims')">Claims</button>
+    <button class="tab-btn"        id="tbtn-instructions" onclick="window.showTab('instructions')">Instructions</button>
+    <button class="tab-btn"        id="tbtn-documents"    onclick="window.showTab('documents')">Documents</button>
+    <button class="tab-btn"        id="tbtn-crew"         onclick="window.showTab('crew')">Crew log</button>
+  </div>
+  <div class="main" style="padding-bottom:20px;">
+    <div class="tab-pane" id="pane-overview"></div>
+    <div class="tab-pane" id="pane-claims"></div>
+    <div class="tab-pane" id="pane-instructions"></div>
+    <div class="tab-pane" id="pane-documents"></div>
+    <div class="tab-pane" id="pane-crew"></div>
+  </div>
+</div>
+
+<!-- ══ VAULT ══ -->
+<div class="screen" id="screen-vault">
+  <div class="topbar">
+    <div class="t-logo"><div class="t-mark">IQ</div><span class="t-brand">Project IQ</span></div>
+    <div class="t-right"><button class="btn btn-p btn-sm" onclick="window.openModal('modal-vault-upload')">+ Upload</button></div>
+  </div>
+  <div class="main">
+    <div class="home-header">
+      <div class="home-company">Company vault</div>
+      <div class="home-meta">Upload once &mdash; assign to any project</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card hb"><div class="stat-lbl">Total documents</div><div class="stat-val b" id="vault-total-docs">—</div></div>
+      <div class="stat-card"><div class="stat-lbl">Staff on record</div><div class="stat-val" id="vault-employees">—</div></div>
+      <div class="stat-card hr"><div class="stat-lbl">Expiring soon</div><div class="stat-val r" id="vault-expiring">—</div></div>
+      <div class="stat-card hg"><div class="stat-lbl">Active projects</div><div class="stat-val g" id="vault-projects">—</div></div>
+    </div>
+    <div style="overflow-x:auto;display:flex;border-bottom:1px solid var(--b1);background:var(--bg2);scrollbar-width:none;">
+      <button class="vnav-btn active" id="vnav-overview"    onclick="window.showVaultSection('overview')">Overview</button>
+      <button class="vnav-btn"        id="vnav-employees"   onclick="window.showVaultSection('employees')">&#128119; Employees</button>
+      <button class="vnav-btn"        id="vnav-swms"        onclick="window.showVaultSection('swms')">&#9888; SWMS</button>
+      <button class="vnav-btn"        id="vnav-insurances"  onclick="window.showVaultSection('insurances')">&#128203; Insurances</button>
+      <button class="vnav-btn"        id="vnav-plant"       onclick="window.showVaultSection('plant')">&#128668; Plant</button>
+      <button class="vnav-btn"        id="vnav-other"       onclick="window.showVaultSection('other')">&#128196; Other</button>
+    </div>
+    <div id="vault-content" style="padding-bottom:20px;"></div>
+  </div>
+  <nav class="bottom-nav" style="display:flex;">
+    <button class="nav-btn" onclick="window.goTo('home');window.renderHome&&renderHome()"><span class="nav-icon">&#127968;</span>Home</button>
+    <button class="nav-btn active"><span class="nav-icon">&#128451;</span>Vault</button>
+    <button class="nav-btn" onclick="alert('All claims view — coming soon')"><span class="nav-icon">&#128176;</span>Claims</button>
+    <button class="nav-btn" onclick="window.showQuotes()"><span class="nav-icon">&#128203;</span>Quotes</button>
+    <button class="nav-btn" onclick="window.doLogout()"><span class="nav-icon">&#128682;</span>Sign out</button>
+  </nav>
+</div>
+
+<!-- ══ MODALS ══ -->
+<div class="modal-bg" id="modal-claim">
+  <div class="modal-card">
+    <div class="mh"><div class="mt">&#128176; Submit progress claim</div><button class="mx" onclick="window.closeModal('modal-claim')">&#215;</button></div>
+    <div class="mb">
+      <div style="background:var(--bbg);border:1px solid rgba(88,166,255,0.15);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue);line-height:1.6;">Payment due within 15 business days per AS4000.</div>
+      <div class="fg"><label class="flb">Claim period</label>
+        <select class="fs"><option>March 2026 (01/03/26 &ndash; 31/03/26)</option><option>April 2026 (01/04/26 &ndash; 30/04/26)</option></select>
+      </div>
+      <div class="fg"><label class="flb">Amount (ex GST) *</label><input id="claim-amount" type="number" class="fi" placeholder="e.g. 11000"></div>
+      <div class="fg"><label class="flb">Description of works *</label><textarea id="claim-desc" class="fta" placeholder="Describe the works completed this period&hellip;"></textarea></div>
+      <div class="fg"><label class="flb">Reference variations (if any)</label><input class="fi" placeholder="e.g. VAR-001 &mdash; $4,200"></div>
+      <div class="fg"><label class="flb">Attach tax invoice</label><div class="fup">&#128206; Upload invoice PDF</div></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" style="flex:1;justify-content:center;" onclick="window.closeModal('modal-claim')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center;" onclick="window.submitClaim()">Submit claim &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-crew">
+  <div class="modal-card">
+    <div class="mh"><div class="mt">&#128119; Log today's crew</div><button class="mx" onclick="window.closeModal('modal-crew')">&#215;</button></div>
+    <div class="mb">
+      <div class="fg"><label class="flb">Total workers on site *</label><input id="crew-count" type="number" class="fi" placeholder="e.g. 8"></div>
+      <div class="fr">
+        <div class="fg"><label class="flb">Start time</label><input type="time" class="fi" value="07:00"></div>
+        <div class="fg"><label class="flb">Finish time</label><input type="time" class="fi" value="15:30"></div>
+      </div>
+      <div class="fg"><label class="flb">Work completed today</label><textarea class="fta" style="min-height:60px;" placeholder="Brief description&hellip;"></textarea></div>
+      <div class="fg"><label class="flb">Weather impact?</label>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-g btn-sm">No impact</button>
+          <button class="btn btn-g btn-sm">Delayed</button>
+          <button class="btn btn-g btn-sm">Stood down</button>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" style="flex:1;justify-content:center;" onclick="window.closeModal('modal-crew')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center;" onclick="window.submitCrew()">Save log</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-doc">
+  <div class="modal-card">
+    <div class="mh"><div class="mt">&#128196; Upload document</div><button class="mx" onclick="window.closeModal('modal-doc')">&#215;</button></div>
+    <div class="mb">
+      <div class="fg"><label class="flb">Document type</label>
+        <select class="fs"><option value="">Select type&hellip;</option><option>Workers Compensation Insurance</option><option>Public Liability Insurance</option><option>SWMS</option><option>Licence / Certificate</option><option>Plant Registration</option><option>Tax Invoice</option><option>Other</option></select>
+      </div>
+      <div class="fg"><label class="flb">Document name</label><input class="fi" placeholder="e.g. Workers Comp Renewal 2026"></div>
+      <div class="fg"><label class="flb">Expiry date (if applicable)</label><input type="date" class="fi"></div>
+      <div class="fup">&#128206; Tap to upload &mdash; PDF, JPG or PNG, max 20MB</div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" style="flex:1;justify-content:center;" onclick="window.closeModal('modal-doc')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center;" onclick="window.submitDoc()">Upload &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-push">
+  <div class="modal-card">
+    <div class="mh"><div class="mt">&#128204; Push to projects</div><button class="mx" onclick="window.closeModal('modal-push')">&#215;</button></div>
+    <div class="mb">
+      <div style="background:var(--bbg);border:1px solid rgba(88,166,255,0.15);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue);line-height:1.5;">Assigning <strong id="push-doc-name">document</strong> to selected projects makes it visible to the builder's project team.</div>
+      <input type="hidden" id="push-doc-id">
+      <input type="hidden" id="push-doc-type">
+      <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Select projects</div>
+      <div id="push-project-list" style="background:var(--bg3);border:1px solid var(--b1);border-radius:8px;overflow:hidden;"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" style="flex:1;justify-content:center;" onclick="window.closeModal('modal-push')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center;" onclick="window.confirmPush()">Confirm &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-vault-upload">
+  <div class="modal-card">
+    <div class="mh"><div class="mt">&#10133; Add to vault</div><button class="mx" onclick="window.closeModal('modal-vault-upload')">&#215;</button></div>
+    <div class="mb">
+      <div class="fg"><label class="flb">Category</label>
+        <select class="fs"><option value="">Select category&hellip;</option><option>SWMS</option><option>Insurance</option><option>Plant &amp; equipment</option><option>Licence / certificate</option><option>Employee record</option><option>Other</option></select>
+      </div>
+      <div class="fg"><label class="flb">Document name</label><input class="fi" placeholder="e.g. Public Liability Insurance 2026"></div>
+      <div class="fr">
+        <div class="fg"><label class="flb">Version / reference</label><input class="fi" placeholder="e.g. Rev 3"></div>
+        <div class="fg"><label class="flb">Expiry date</label><input type="date" class="fi"></div>
+      </div>
+      <div class="fg"><label class="flb">Assign to projects</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer;"> Northern Ridge Mixed Use</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer;"> Harbourside Apartments Stage 2</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer;"> Westmead Business Park</label>
+        </div>
+      </div>
+      <div class="fup">&#128206; Upload file &mdash; PDF, JPG, PNG, max 20MB</div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" style="flex:1;justify-content:center;" onclick="window.closeModal('modal-vault-upload')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center;" onclick="window.closeModal('modal-vault-upload');window.showToast('Document added to vault')">Add to vault &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-employee">
+  <div class="modal-card">
+    <div class="mh"><div class="mt">&#128119; Add employee</div><button class="mx" onclick="window.closeModal('modal-employee')">&#215;</button></div>
+    <div class="mb">
+      <div class="fr">
+        <div class="fg"><label class="flb">First name</label><input class="fi" placeholder="Michael"></div>
+        <div class="fg"><label class="flb">Last name</label><input class="fi" placeholder="Bonavita"></div>
+      </div>
+      <div class="fg"><label class="flb">Role / trade</label>
+        <select class="fs"><option>Formwork Supervisor</option><option>Leading Hand</option><option>Formwork Carpenter</option><option>Formwork Labourer</option><option>Scaffolder</option><option>Rigger</option><option>Other</option></select>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="flb">Phone</label><input class="fi" type="tel" placeholder="0412 000 000"></div>
+        <div class="fg"><label class="flb">Email</label><input class="fi" type="email" placeholder="name@company.com"></div>
+      </div>
+      <div class="fg"><label class="flb">Tickets held</label>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" checked style="width:15px;height:15px;accent-color:var(--teal);cursor:pointer;"> White Card (WHS)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--teal);cursor:pointer;"> Scaffolding — Basic</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--teal);cursor:pointer;"> Dogman — DG</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--teal);cursor:pointer;"> Rigger — Basic</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--teal);cursor:pointer;"> EWP — Boom</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--teal);cursor:pointer;"> Working at Heights</label>
+        </div>
+      </div>
+      <div class="fg"><label class="flb">Tickets expiry date</label><input type="date" class="fi"></div>
+      <div class="fup">&#128206; Upload supporting docs (optional)</div>
+    </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ QUOTES ══ -->
+<div class="screen" id="screen-quotes">
+  <div class="topbar">
+    <div class="t-logo"><div class="t-mark">IQ</div><span class="t-brand">Project IQ</span></div>
+  </div>
+  <div class="main">
+    <div class="home-header">
+      <div class="home-company">Variation Quotes</div>
+      <div class="home-meta">Builder-issued variation requests requiring your pricing</div>
+    </div>
+
+    <!-- Summary strip -->
+    <div class="stat-grid" style="padding:0 16px;margin-bottom:12px;">
+      <div class="stat-card hb"><div class="stat-lbl">Pending quotes</div><div class="stat-val b">3</div></div>
+      <div class="stat-card hg"><div class="stat-lbl">Submitted</div><div class="stat-val g">4</div></div>
+      <div class="stat-card ha"><div class="stat-lbl">Awaiting approval</div><div class="stat-val a">2</div></div>
+      <div class="stat-card hg"><div class="stat-lbl">Approved value</div><div class="stat-val g">$14,200</div></div>
+    </div>
+
+    <div class="divider" style="padding:0 16px;font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Action required</div>
+
+    <!-- Pending quotes -->
+    <div style="padding:0 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+
+      <div class="card" style="border-left:3px solid var(--amber);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-004 — Additional slab reinforcement</div>
+            <div style="font-size:11px;color:var(--mu);margin-top:2px;">Northern Ridge Mixed Use · Issued 28/03/26</div>
+          </div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(210,153,34,0.12);color:var(--amber);">QUOTE DUE</span>
+        </div>
+        <div style="font-size:12px;color:var(--mu);line-height:1.6;margin-bottom:12px;">Additional N16 reinforcement required at Level 2 slab penetrations following structural engineer's revised drawings. Scope includes supply and fix.</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mu);margin-bottom:12px;">
+          <span>📄 Revised structural drawings attached</span>
+          <span style="margin-left:auto;color:var(--red);font-weight:600;">Due 04/04/26</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-g btn-sm" style="flex:1;justify-content:center;" onclick="window.showToast('Quote details opened')">View scope →</button>
+          <button class="btn btn-p btn-sm" style="flex:2;justify-content:center;" onclick="window.openModal('modal-submit-quote')">Submit quote →</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--amber);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-006 — Formwork to lift shaft extension</div>
+            <div style="font-size:11px;color:var(--mu);margin-top:2px;">Northern Ridge Mixed Use · Issued 30/03/26</div>
+          </div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(210,153,34,0.12);color:var(--amber);">QUOTE DUE</span>
+        </div>
+        <div style="font-size:12px;color:var(--mu);line-height:1.6;margin-bottom:12px;">Lift shaft extended by 1200mm above original design level. Additional formwork to walls and soffit required. Refer to revised architectural drawings Rev C.</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mu);margin-bottom:12px;">
+          <span>📄 Arch drawings Rev C attached</span>
+          <span style="margin-left:auto;color:var(--amber);font-weight:600;">Due 07/04/26</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-g btn-sm" style="flex:1;justify-content:center;" onclick="window.showToast('Quote details opened')">View scope →</button>
+          <button class="btn btn-p btn-sm" style="flex:2;justify-content:center;" onclick="window.openModal('modal-submit-quote')">Submit quote →</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--red);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-003 — Temporary propping to Level 1</div>
+            <div style="font-size:11px;color:var(--mu);margin-top:2px;">Northern Ridge Mixed Use · Issued 20/03/26</div>
+          </div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(248,81,73,0.1);color:var(--red);">OVERDUE</span>
+        </div>
+        <div style="font-size:12px;color:var(--mu);line-height:1.6;margin-bottom:12px;">Additional temporary propping required at Level 1 post-tension slab per structural instruction SI-014. Quote overdue — builder following up.</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-g btn-sm" style="flex:1;justify-content:center;" onclick="window.showToast('Quote details opened')">View scope →</button>
+          <button class="btn btn-p btn-sm" style="flex:2;justify-content:center;" onclick="window.openModal('modal-submit-quote')">Submit quote →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider" style="padding:0 16px;font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Submitted & approved</div>
+
+    <!-- Submitted / approved quotes -->
+    <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;">
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-001 — Additional formwork to stairwell shaft</div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(63,185,80,0.1);color:var(--teal);">APPROVED</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px;">Northern Ridge Mixed Use · Quoted $4,800 · Approved $4,200</div>
+        <div style="font-size:11px;color:var(--mu2);">Include in next progress claim · Reference VAR-001</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-002 — Revised edge beam formwork</div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(63,185,80,0.1);color:var(--teal);">APPROVED</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px;">Northern Ridge Mixed Use · Quoted $3,600 · Approved $3,600</div>
+        <div style="font-size:11px;color:var(--mu2);">Include in next progress claim · Reference VAR-002</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-005 — Penetration sleeves Level 1</div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(88,166,255,0.1);color:var(--blue);">AWAITING APPROVAL</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px;">Northern Ridge Mixed Use · Quoted $2,400 · Submitted 25/03/26</div>
+        <div style="font-size:11px;color:var(--mu2);">Builder reviewing — typically 5 business days</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);">VAR-007 — Extended hire — props Level 2</div>
+          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(88,166,255,0.1);color:var(--blue);">AWAITING APPROVAL</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px;">Northern Ridge Mixed Use · Quoted $1,800 · Submitted 29/03/26</div>
+        <div style="font-size:11px;color:var(--mu2);">Builder reviewing — typically 5 business days</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="window.goTo('home')"><span class="nav-icon">&#127968;</span>Home</button>
+    <button class="nav-btn" onclick="window.showVault()"><span class="nav-icon">&#128451;</span>Vault</button>
+    <button class="nav-btn" onclick="alert('All claims view — coming soon')"><span class="nav-icon">&#128176;</span>Claims</button>
+    <button class="nav-btn active"><span class="nav-icon">&#128203;</span>Quotes</button>
+    <button class="nav-btn" onclick="window.doLogout()"><span class="nav-icon">&#128682;</span>Sign out</button>
+  </nav>
+</div>
+
+<!-- SUBMIT QUOTE MODAL -->
+<div class="modal-bg" id="modal-submit-quote" onclick="if(event.target===this)window.closeModal('modal-submit-quote')">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="mh"><div class="mt">&#128203; Submit variation quote</div><button class="mx" onclick="window.closeModal('modal-submit-quote')">&#215;</button></div>
+    <div class="mb">
+      <div style="background:rgba(63,185,80,0.07);border:1px solid rgba(63,185,80,0.12);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--mu);line-height:1.6;margin-bottom:4px;">
+        Submit your price for this variation. The builder will review and either approve, negotiate or reject.
+      </div>
+      <div class="fg"><label class="flb">Your quoted amount (ex GST)</label>
+        <input class="fi" type="number" placeholder="e.g. 4800" style="font-family:var(--fm);">
+      </div>
+      <div class="fg"><label class="flb">Estimated duration</label>
+        <select class="fs">
+          <option>1–2 days</option><option>3–5 days</option><option>1–2 weeks</option><option>2–4 weeks</option><option>To be confirmed</option>
+        </select>
+      </div>
+      <div class="fg"><label class="flb">Breakdown / notes</label>
+        <textarea class="fi" rows="3" placeholder="Labour: $X · Materials: $Y · Plant: $Z" style="resize:none;"></textarea>
+      </div>
+      <div class="fup">&#128206; Attach supporting documents (optional)</div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" style="flex:1;justify-content:center;" onclick="window.closeModal('modal-submit-quote')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center;" onclick="window.closeModal('modal-submit-quote');window.showToast('Quote submitted to builder')">Submit quote →</button>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER INTEREST MODAL -->
+<div class="modal-bg" id="modal-subco-interest" style="position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:900;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div class="modal-card" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto;">
+    <div class="mh">
+      <div class="mt">&#128994; Register your interest</div>
+      <button class="mx" onclick="window.closeModal('modal-subco-interest')">&#215;</button>
+    </div>
+    <div class="mb" id="subco-modal-form">
+      <div style="background:rgba(63,185,80,0.07);border:1px solid rgba(63,185,80,0.15);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--mu);line-height:1.6;margin-bottom:4px;">
+        You're exploring the subcontractor portal demo. Register your interest and we'll be in touch within 24 hours.
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="flb">First name *</label><input class="fi" id="sc-first" placeholder="Sarah"></div>
+        <div class="fg"><label class="flb">Last name *</label><input class="fi" id="sc-last" placeholder="Wells"></div>
+      </div>
+      <div class="fg"><label class="flb">Email *</label><input class="fi" id="sc-email" type="email" placeholder="sarah@company.com.au"></div>
+      <div class="fg"><label class="flb">Phone</label><input class="fi" id="sc-phone" type="tel" placeholder="0400 000 000"></div>
+      <div class="fg"><label class="flb">Company name</label><input class="fi" id="sc-company" placeholder="Coastline Concrete Co"></div>
+      <div class="fg"><label class="flb">Your trade</label>
+        <select class="fs" id="sc-role">
+          <option value="">Select trade…</option>
+          <option>Concretor / Formwork</option>
+          <option>Bricklayer</option>
+          <option>Plumber</option>
+          <option>Electrician</option>
+          <option>Carpenter</option>
+          <option>Scaffolder</option>
+          <option>Painter</option>
+          <option>Tiler</option>
+          <option>Other subcontractor</option>
+        </select>
+      </div>
+      <div class="fg"><label class="flb">Number of active projects</label>
+        <select class="fs" id="sc-size">
+          <option value="">Select…</option>
+          <option>1–2</option>
+          <option>3–5</option>
+          <option>6–10</option>
+          <option>10+</option>
+        </select>
+      </div>
+      <div id="sc-error" style="display:none;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.2);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--red);"></div>
+    </div>
+    <div id="subco-modal-success" style="display:none;padding:36px 20px;text-align:center;">
+      <div style="font-size:44px;margin-bottom:14px;">&#127881;</div>
+      <div style="font-size:18px;font-weight:600;color:var(--tx);margin-bottom:8px;">You're on the list!</div>
+      <div style="font-size:13px;color:var(--mu);line-height:1.65;margin-bottom:20px;">Thanks for registering. We'll be in touch within 24 hours.</div>
+      <div style="font-size:11px;color:var(--teal);margin-bottom:20px;">&#10003; Registration saved</div>
+      <button class="btn btn-p btn-full" onclick="window.closeModal('modal-subco-interest')">Close</button>
+    </div>
+    <div class="mf" id="subco-modal-footer">
+      <button class="btn btn-g" style="flex:1;justify-content:center;" onclick="window.closeModal('modal-subco-interest')">Cancel</button>
+      <button class="btn btn-p" id="sc-submit" style="flex:2;justify-content:center;" onclick="window.subcoSubmitInterest()">Register interest &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER INTEREST FLOATING BANNER -->
+<div id="subco-cta-banner" style="position:fixed;bottom:54px;left:0;right:0;z-index:99;background:linear-gradient(90deg,#0A1628,#111E35);border-top:1px solid rgba(63,185,80,0.3);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+  <div>
+    <div style="font-size:12px;font-weight:600;color:#3FB950;margin-bottom:1px;">&#128994; You're viewing the Project IQ subcontractor portal demo</div>
+    <div style="font-size:11px;color:#7D8590;">Free during the pilot &mdash; register to use it with your real projects.</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <a href="index.html" style="display:inline-flex;align-items:center;padding:7px 14px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;font-size:12px;font-weight:500;color:#7D8590;text-decoration:none;white-space:nowrap;">&#8592; Back to site</a>
+    <button onclick="window.openSubcoInterest()" style="display:inline-flex;align-items:center;padding:7px 16px;background:#238636;border:1px solid rgba(63,185,80,0.3);border-radius:6px;font-size:12px;font-weight:600;color:white;cursor:pointer;font-family:inherit;white-space:nowrap;">Register interest &#8594;</button>
+  </div>
+</div>
+
+<script data-cfasync="false">
+window.openSubcoInterest = function() {
+  var m = document.getElementById('modal-subco-interest');
+  if (!m) return;
+  m.style.display = 'flex';
+  document.getElementById('subco-modal-form').style.display = 'flex';
+  document.getElementById('subco-modal-footer').style.display = 'flex';
+  document.getElementById('subco-modal-success').style.display = 'none';
+  document.getElementById('sc-error').style.display = 'none';
+  var btn = document.getElementById('sc-submit');
+  if (btn) { btn.textContent = 'Register interest →'; btn.disabled = false; }
+};
+
+document.getElementById('modal-subco-interest').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+
+window.subcoSubmitInterest = async function() {
+  var first   = document.getElementById('sc-first').value.trim();
+  var last    = document.getElementById('sc-last').value.trim();
+  var email   = document.getElementById('sc-email').value.trim();
+  var phone   = document.getElementById('sc-phone').value.trim() || null;
+  var company = document.getElementById('sc-company').value.trim() || null;
+  var role    = document.getElementById('sc-role').value || null;
+  var size    = document.getElementById('sc-size').value || null;
+  var errEl   = document.getElementById('sc-error');
+
+  if (!first||!last) { errEl.textContent='Please enter your name.'; errEl.style.display='block'; return; }
+  if (!email||!email.includes('@')) { errEl.textContent='Please enter a valid email.'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+
+  var btn = document.getElementById('sc-submit');
+  btn.textContent='Saving…'; btn.disabled=true;
+
+  var supaOk = false;
+  try {
+    var res = await fetch('https://uowztodljhcbyjvagwit.supabase.co/rest/v1/early_access_leads', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'sb_publishable_Lc31Kw20n_S5UrC682oZ8Q_epZWs5FN',
+        'Authorization': 'Bearer sb_publishable_Lc31Kw20n_S5UrC682oZ8Q_epZWs5FN',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        first_name: first, last_name: last, email: email,
+        phone: phone, company_name: company, role: role,
+        project_size: size, source: 'subcontractor-demo'
+      })
+    });
+    if (res.ok || res.status === 201) supaOk = true;
+    else console.error('Supabase error:', res.status, await res.text());
+  } catch(e) { console.error('Supabase exception:', e); }
+
+  if (!supaOk) {
+    var s = encodeURIComponent('Project IQ Subco Interest: ' + first + ' ' + last);
+    var b = encodeURIComponent('Name: ' + first + ' ' + last + '\nEmail: ' + email + '\nPhone: ' + (phone||'—') + '\nCompany: ' + (company||'—') + '\nTrade: ' + (role||'—') + '\nProjects: ' + (size||'—') + '\nSource: subcontractor-demo');
+    window.open('mailto:nick@projectiqtech.com?subject=' + s + '&body=' + b);
+  }
+
+  document.getElementById('subco-modal-form').style.display = 'none';
+  document.getElementById('subco-modal-footer').style.display = 'none';
+  document.getElementById('subco-modal-success').style.display = 'block';
+};
+
+window.showQuotes = function() {
+  window.goTo('quotes');
+  // Update bottom navs
+  document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('[id^="bnav"][id$="-quotes"]').forEach(function(b) { b.classList.add('active'); });
+};
+</script>
+</body>
+</html>
