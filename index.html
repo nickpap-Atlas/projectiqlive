@@ -7,7 +7,7 @@
 <meta name="description" content="Project IQ is a complete construction project management platform for Australian builders and subcontractors. Site diaries, EOT tracking, cost control, payment claims, SOP Act compliance, retention and cashflow — in one place.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<form name="register-interest" netlify netlify-honeypot="bot-field" hidden>
+<form name="register-interest" hidden>
   <input name="bot-field"><input name="first_name"><input name="last_name">
   <input name="email"><input name="phone"><input name="company">
   <input name="role"><input name="project_size"><input name="note"><input name="source">
@@ -1438,5 +1438,39 @@ const obs=new IntersectionObserver(entries=>{
   </div>
 </div>
 
+
+<script>
+async function submitInterest(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    first_name: form.first_name?.value || '',
+    last_name: form.last_name?.value || '',
+    email: form.email?.value || '',
+    phone: form.phone?.value || '',
+    company: form.company?.value || '',
+    role: form.role?.value || '',
+    project_size: form.project_size?.value || '',
+    note: form.note?.value || '',
+    source: form.source?.value || 'website',
+    created_at: new Date().toISOString()
+  };
+  try {
+    const res = await fetch('https://ygjhbiwvpgyxdiqseyls.supabase.co/rest/v1/project_iq_leads', {
+      method: 'POST',
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnamhiaXd2cGd5eGRpcXNleWxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NDk4MDEsImV4cCI6MjA5MjAyNTgwMX0.gDwnaO7wkAx5w1q7-cmL9C0lYrVoq_7caALTVZ0x6X0',
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      document.getElementById('interest-success')?.style && (document.getElementById('interest-success').style.display = 'block');
+      form.reset();
+    }
+  } catch(err) { console.error('Submit error', err); }
+}
+</script>
 </body>
 </html>
